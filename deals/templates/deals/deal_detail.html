@@ -1,0 +1,54 @@
+{% extends "deals/base.html" %}
+{% block content %}
+
+<h2>Редактирование сделки</h2>
+
+<form method="post" action="{% url 'deal_edit' deal.pk %}">
+  {% csrf_token %}
+
+  <div class="mb-3">
+    <label for="title" class="form-label">Название сделки</label>
+    <input type="text" class="form-control" id="title" name="title" value="{{ deal.title }}">
+  </div>
+
+  <div class="mb-3">
+    <label for="stage" class="form-label">Этап</label>
+    <select class="form-select" id="stage" name="stage_id">
+      {% for s in stages %}
+        <option value="{{ s.id }}" {% if deal.stage_id == s.id %}selected{% endif %}>
+          {{ s.order_index }} — {{ s.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label for="client" class="form-label">Клиент (ID)</label>
+    <input type="number" class="form-control" id="client" name="client_id" value="{{ deal.client_id }}">
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Владелец</label>
+    <input type="text" class="form-control" value="{{ deal.owner.username }}" disabled>
+  </div>
+
+  <button type="submit" class="btn btn-success">Сохранить</button>
+</form>
+
+<hr>
+
+<h4>Документы</h4>
+<ul>
+  {% for doc in deal.documents.all %}
+  <li>
+    {{ doc.filename }} —
+    <a href="{% url 'download_document' doc.pk %}">скачать</a>
+  </li>
+  {% empty %}
+  <li>Нет документов</li>
+  {% endfor %}
+</ul>
+
+<a class="btn btn-primary" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+
+{% endblock %}
