@@ -17,13 +17,7 @@
   </tbody>
 </table>
 
-<button id="add-deal-btn">Добавить сделку</button>
-
-<ul id="deal-list">
-  {% for deal in deals %}
-    <li>{{ deal.name }}</li>
-  {% endfor %}
-</ul>
+<button id="add-deal-btn" class="btn btn-primary mt-3">Добавить сделку</button>
 
 <script>
 document.getElementById("add-deal-btn").addEventListener("click", function() {
@@ -40,7 +34,7 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
     let tr = document.createElement("tr");
     tr.innerHTML = `
       <td><a href="/deals/${data.id}/edit/">${data.name}</a></td>
-      <td>None</td>
+      <td>${data.stage}</td>
       <td>{{ request.user.username }}</td>
       <td>${data.created_at}</td>
     `;
@@ -49,5 +43,5 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
 });
 </script>
 
-
 {% endblock %}
+

@@ -54,6 +54,18 @@ class Deal(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
+    def save(self, *args, **kwargs):
+        # Автогенерация имени сделки
+        if not self.title:
+            count = Deal.objects.filter(owner=self.owner).count() + 1
+            self.title = f"Сделка {count}"
+        # Автоматический этап для новых сделок
+        if not self.stage:
+            # Получаем объект Stage с названием "Заявка"
+            stage_obj = Stage.objects.filter(name="Заявка").first()
+            self.stage = stage_obj
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
 

@@ -21,6 +21,7 @@ def create_deal(request):
         deal.save()
         return JsonResponse({
             "id": deal.id,
+            "name": deal.title,
             "Title": deal.title,
             "created_at": deal.created_at.strftime("%Y-%m-%d %H:%M")
         })
