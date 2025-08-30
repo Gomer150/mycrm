@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+
 
 User = get_user_model()
 
@@ -31,6 +33,15 @@ class Contact(models.Model):
     phone = models.CharField(max_length=64, blank=True)
     email = models.EmailField(blank=True)
     messengers = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        if not self.name:  
+            # Считаем количество сделок
+            count = Deal.objects.filter(owner=self.owner).count() + 1
+            self.name = f"Сделка {count}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.company.name})"

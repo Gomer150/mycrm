@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, Http404
 from django.utils.encoding import smart_str
 from django.conf import settings
+from django.http import JsonResponse
+
 
 from .models import Deal, Document, Stage
 from .forms import DocumentUploadForm
@@ -11,6 +13,17 @@ def index(request):
     if request.user.is_authenticated:
         return redirect("deals_list")
     return render(request, "deals/deals_list.html", {"deals": []})
+
+@login_required
+def create_deal(request):
+    if request.method == "POST":
+        deal = Deal.objects.create(owner=request.user)
+        deal.save()
+        return JsonResponse({
+            "id": deal.id,
+            "Title": deal.title,
+            "created_at": deal.created_at.strftime("%Y-%m-%d %H:%M")
+        })
 
 def deal_edit(request, pk):
     deal = get_object_or_404(Deal, pk=pk)
