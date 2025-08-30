@@ -1,6 +1,0 @@
-Django>=4.2,<5
-python-dotenv
-gunicorn
-google-api-python-client>=2.0.0
-google-auth-httplib2
-google-auth-oauthlib
