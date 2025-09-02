@@ -74,13 +74,29 @@ class DealCompany(models.Model):
         ("client", "Клиент"),
         ("partner", "Партнёр"),
         ("supplier", "Поставщик"),
+        ("investor", "Инвестор"),
     ]
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default="customer",
+        verbose_name="Роль компании в сделке"
+    )
 
     class Meta:
         unique_together = ("deal", "company", "role")
+
+class DealContact(models.Model):
+    deal = models.ForeignKey("Deal", on_delete=models.CASCADE, related_name="deal_contacts")
+    contact = models.ForeignKey("Contact", on_delete=models.CASCADE, related_name="contact_deals")
+    comment = models.TextField(blank=True, null=True, verbose_name="Комментарий")
+
+    def __str__(self):
+        return f"{self.contact} в {self.deal}"
+
 
 class Document(models.Model):
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name="documents")
