@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 
 
+
 User = get_user_model()
 
 class Stage(models.Model):
@@ -81,13 +82,29 @@ class DealCompany(models.Model):
         ("client", "Клиент"),
         ("partner", "Партнёр"),
         ("supplier", "Поставщик"),
+        ("investor", "Инвестор"),
     ]
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default="customer",
+        verbose_name="Роль компании в сделке"
+    )
 
     class Meta:
         unique_together = ("deal", "company", "role")
+
+class DealContact(models.Model):
+    deal = models.ForeignKey("Deal", on_delete=models.CASCADE, related_name="deal_contacts")
+    contact = models.ForeignKey("Contact", on_delete=models.CASCADE, related_name="contact_deals")
+    comment = models.TextField(blank=True, null=True, verbose_name="Комментарий")
+
+    def __str__(self):
+        return f"{self.contact} в {self.deal}"
+
 
 class Document(models.Model):
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name="documents")
@@ -144,9 +161,32 @@ class DocumentAdmin(admin.ModelAdmin):
 === FILE START: /var/www/crm/deals/forms.py ===
 ```python
 from django import forms
+from .models import Deal, Company, Contact
+
 
 class DocumentUploadForm(forms.Form):
     file = forms.FileField()
+
+from django import forms
+
+
+class DealForm(forms.ModelForm):
+    companies = forms.ModelMultipleChoiceField(
+        queryset=Company.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Компании"
+    )
+    contacts = forms.ModelMultipleChoiceField(
+        queryset=Contact.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Контакты"
+    )
+
+    class Meta:
+        model = Deal
+        fields = ["title", "stage", "owner", "companies", "contacts"]
 ```
 === FILE END: /var/www/crm/deals/forms.py ===
 
@@ -255,6 +295,40 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
 ```html
 <!doctype html>
 <html lang="ru">
+
+<style>
+  .delete-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    position: relative;
+    margin-left: 10px;
+    cursor: pointer;
+  }
+  .delete-icon::before,
+  .delete-icon::after {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 0;
+    width: 16px;
+    height: 2px;
+    background-color: #dc3545; /* красный */
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+  .delete-icon::before {
+    transform: rotate(45deg);
+  }
+  .delete-icon::after {
+    transform: rotate(-45deg);
+  }
+  .delete-icon:hover::before,
+  .delete-icon:hover::after {
+    background-color: #a71d2a; /* темнее при наведении */
+    transform: scale(1.2) rotate(45deg);
+  }
+</style>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -371,11 +445,78 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
     </select>
   </div>
 
-  <div class="mb-3">
-    <label for="client" class="form-label">Клиент (ID)</label>
-<!--    <input type="number" class="form-control" id="client" name="client_id" value="{{ deal.client_id }}"> -->
-    <input type="number" class="form-control" value="{{ deal.client_id }}" disabled>
+<div class="mb-3">
+  <label for="client" class="form-label">Клиент</label>
+  <div class="input-group">
+    <select class="form-select" id="client" name="client_id">
+      <option value="">— выберите клиента —</option>
+      {% for company in companies %}
+        <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>
+          {{ company.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">+</button>
   </div>
+</div>
+
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить клиента</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="new-client-name" class="form-label">Название клиента</label>
+          <input type="text" class="form-control" id="new-client-name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="save-client-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById("save-client-btn").addEventListener("click", function() {
+  let name = document.getElementById("new-client-name").value.trim();
+  if (!name) {
+    alert("Введите название клиента");
+    return;
+  }
+
+  fetch("{% url 'create_company' %}", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "name=" + encodeURIComponent(name)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+    } else {
+      let select = document.getElementById("client");
+      let option = document.createElement("option");
+      option.value = data.id;
+      option.textContent = data.name;
+      option.selected = true;
+      select.appendChild(option);
+
+      // закрыть модальное окно
+      let modal = bootstrap.Modal.getInstance(document.getElementById("addClientModal"));
+      modal.hide();
+      document.getElementById("new-client-name").value = "";
+    }
+  });
+});
+</script>
 
   <div class="mb-3">
     <label class="form-label">Владелец</label>
@@ -388,18 +529,24 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
 <hr>
 
 <h4>Документы</h4>
-<ul>
+<ul class="list-group">
   {% for doc in deal.documents.all %}
-  <li>
-    {{ doc.filename }} —
-    <a href="{% url 'download_document' doc.pk %}">скачать</a>
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      {{ forloop.counter }}. {{ doc.filename }} —
+      <a href="{% url 'download_document' doc.pk %}">скачать</a>
+    </div>
+    <a href="{% url 'delete_document' doc.pk %}"
+       onclick="return confirm('Удалить документ {{ doc.filename }}?');"
+       class="delete-icon"></a>
   </li>
   {% empty %}
-  <li>Нет документов</li>
+  <li class="list-group-item">Нет документов</li>
   {% endfor %}
 </ul>
 
-<a class="btn btn-primary" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+<a class="btn btn-primary mt-2" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+
 
 {% endblock %}
 ```
@@ -415,8 +562,13 @@ from django.conf import settings
 from django.http import JsonResponse
 
 
-from .models import Deal, Document, Stage
+from .models import Deal, Document, Stage 
+from .forms import DealForm  
 from .forms import DocumentUploadForm
+
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+
 
 def index(request):
     if request.user.is_authenticated:
@@ -447,6 +599,19 @@ def deal_edit(request, pk):
         return redirect("deal_detail", pk=deal.pk)
 
     return render(request, "deals/deal_edit.html", {"deal": deal, "stages": stages})
+
+@login_required
+@require_POST
+def create_company(request):
+    name = request.POST.get("name")
+    if not name:
+        return JsonResponse({"error": "Название клиента обязательно"}, status=400)
+
+    company = Company.objects.create(name=name, type="client")
+    return JsonResponse({
+        "id": company.id,
+        "name": company.name
+    })
 
 @login_required
 def deals_list(request):
@@ -503,7 +668,15 @@ def download_document(request, doc_id):
     response["Content-Length"] = str(doc.size)
     response["Content-Disposition"] = f'attachment; filename="{smart_str(doc.filename)}"'
     return response
-```
+
+@login_required
+def delete_document(request, doc_id):
+    doc = get_object_or_404(Document, pk=doc_id)
+    if not (request.user.is_superuser or doc.deal.owner == request.user):
+        return HttpResponseForbidden("Нет доступа")
+    deal_id = doc.deal.pk
+    doc.delete()
+    return redirect("deal_edit", pk=deal_id)```
 === FILE END: /var/www/crm/deals/views.py ===
 
 === FILE START: /var/www/crm/deals/urls.py ===
@@ -515,6 +688,7 @@ from deals import views as deals_views
 from django.urls import path
 from . import views
 
+
 urlpatterns = [
 
     path('', deals_views.index, name='home'),  # главная страница
@@ -524,7 +698,9 @@ urlpatterns = [
     path('deals/<int:pk>/upload/', deals_views.upload_document, name='upload_document'),
     path('document/<int:doc_id>/download/', deals_views.download_document, name='download_document'),
     path("deals/create/", views.create_deal, name="create_deal"),
-
+    path("document/<int:doc_id>/delete/", views.delete_document, name="delete_document"),
+    path("companies/create/", views.create_company, name="create_company"),
+ 
 
 ]
 ```

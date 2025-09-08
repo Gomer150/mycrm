@@ -22,11 +22,87 @@
     </select>
   </div>
 
-  <div class="mb-3">
-    <label for="client" class="form-label">Клиент (ID)</label>
-<!--    <input type="number" class="form-control" id="client" name="client_id" value="{{ deal.client_id }}"> -->
-    <input type="number" class="form-control" value="{{ deal.client_id }}" disabled>
+<div class="mb-3">
+  <label for="client" class="form-label">Клиент</label>
+  <div class="input-group">
+    <select class="form-select" id="client" name="client_id">
+      <option value="">— выберите клиента —</option>
+      {% for company in companies %}
+        <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>
+          {{ company.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">+</button>
   </div>
+</div>
+
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить клиента</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="new-client-name" class="form-label">Название клиента</label>
+          <input type="text" class="form-control" id="new-client-name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="save-client-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+const csrftoken = getCookie('csrftoken');
+</script>
+
+<script>
+document.getElementById("save-client-btn").addEventListener("click", function() {
+  let name = document.getElementById("new-client-name").value.trim();
+  if (!name) {
+    alert("Введите название клиента");
+    return;
+  }
+
+  fetch("{% url 'create_company' %}", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrftoken,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "name=" + encodeURIComponent(name)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+    } else {
+      let select = document.getElementById("client");
+      let option = document.createElement("option");
+      option.value = data.id;
+      option.textContent = data.name;
+      option.selected = true;
+      select.appendChild(option);
+
+      // закрыть модальное окно
+      let modal = bootstrap.Modal.getInstance(document.getElementById("addClientModal"));
+      modal.hide();
+      document.getElementById("new-client-name").value = "";
+    }
+  });
+});
+</script>
 
   <div class="mb-3">
     <label class="form-label">Владелец</label>
@@ -39,17 +115,23 @@
 <hr>
 
 <h4>Документы</h4>
-<ul>
+<ul class="list-group">
   {% for doc in deal.documents.all %}
-  <li>
-    {{ doc.filename }} —
-    <a href="{% url 'download_document' doc.pk %}">скачать</a>
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      {{ forloop.counter }}. {{ doc.filename }} —
+      <a href="{% url 'download_document' doc.pk %}">скачать</a>
+    </div>
+    <a href="{% url 'delete_document' doc.pk %}"
+       onclick="return confirm('Удалить документ {{ doc.filename }}?');"
+       class="delete-icon"></a>
   </li>
   {% empty %}
-  <li>Нет документов</li>
+  <li class="list-group-item">Нет документов</li>
   {% endfor %}
 </ul>
 
-<a class="btn btn-primary" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+<a class="btn btn-primary mt-2" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+
 
 {% endblock %}

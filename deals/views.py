@@ -6,8 +6,13 @@ from django.conf import settings
 from django.http import JsonResponse
 
 
-from .models import Deal, Document, Stage
+from .models import Deal, Document, Stage, Company 
+from .forms import DealForm  
 from .forms import DocumentUploadForm
+
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+
 
 def index(request):
     if request.user.is_authenticated:
@@ -38,6 +43,19 @@ def deal_edit(request, pk):
         return redirect("deal_detail", pk=deal.pk)
 
     return render(request, "deals/deal_edit.html", {"deal": deal, "stages": stages})
+
+@login_required
+@require_POST
+def create_company(request):
+    name = request.POST.get("name")
+    if not name:
+        return JsonResponse({"error": "Название клиента обязательно"}, status=400)
+
+    company = Company.objects.create(name=name, type="client")
+    return JsonResponse({
+        "id": company.id,
+        "name": company.name
+    })
 
 @login_required
 def deals_list(request):
@@ -94,3 +112,12 @@ def download_document(request, doc_id):
     response["Content-Length"] = str(doc.size)
     response["Content-Disposition"] = f'attachment; filename="{smart_str(doc.filename)}"'
     return response
+
+@login_required
+def delete_document(request, doc_id):
+    doc = get_object_or_404(Document, pk=doc_id)
+    if not (request.user.is_superuser or doc.deal.owner == request.user):
+        return HttpResponseForbidden("Нет доступа")
+    deal_id = doc.deal.pk
+    doc.delete()
+    return redirect("deal_edit", pk=deal_id)
