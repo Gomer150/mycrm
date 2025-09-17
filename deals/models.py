@@ -22,6 +22,9 @@ class Company(models.Model):
     ]
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="client")
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -54,6 +57,7 @@ class Deal(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    client = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, blank=True, related_name="client_deals")
 
     def save(self, *args, **kwargs):
         # Автогенерация имени сделки

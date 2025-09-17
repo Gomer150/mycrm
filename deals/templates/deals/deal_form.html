@@ -1,39 +1,9 @@
-{% extends "deals/base.html" %}
-{% block content %}
+<div class="form-group">
+  <label for="id_companies">Компании</label>
+  {{ form.companies }}
+</div>
 
-<h2>Создать сделку</h2>
-
-<form method="post">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-
-  <div class="mb-3">
-    {{ form.title.label_tag }}
-    {{ form.title }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.stage.label_tag }}
-    {{ form.stage }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.owner.label_tag }}
-    {{ form.owner }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.companies.label_tag }}
-    {{ form.companies }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.contacts.label_tag }}
-    {{ form.contacts }}
-  </div>
-
-  <button type="submit" class="btn btn-success">Сохранить</button>
-  <a href="{% url 'deals_list' %}" class="btn btn-secondary">Отмена</a>
-</form>
-
-{% endblock %}
+<div class="form-group">
+  <label for="id_contacts">Контакты</label>
+  {{ form.contacts }}
+</div>

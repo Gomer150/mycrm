@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpResponseForbidden, Http404
 from django.utils.encoding import smart_str
 from django.conf import settings
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 
 
 from .models import Deal, Document, Stage, Company 
@@ -31,31 +32,49 @@ def create_deal(request):
             "created_at": deal.created_at.strftime("%Y-%m-%d %H:%M")
         })
 
+
 def deal_edit(request, pk):
     deal = get_object_or_404(Deal, pk=pk)
     stages = Stage.objects.all()
+    companies = Company.objects.all()  # 👈 добавляем список клиентов
 
     if request.method == "POST":
         deal.title = request.POST.get("title")
         deal.stage_id = request.POST.get("stage_id")
-        deal.client_id = request.POST.get("client_id")
+        deal.client_id = request.POST.get("client_id") or None
         deal.save()
-        return redirect("deal_detail", pk=deal.pk)
+        return redirect("deal_edit", pk=deal.pk)
 
-    return render(request, "deals/deal_edit.html", {"deal": deal, "stages": stages})
+    return render(
+        request,
+        "deals/deal_edit.html",
+        {
+            "deal": deal,
+            "stages": stages,
+            "companies": companies,  # 👈 передаём в шаблон
+        },
+    )
+
 
 @login_required
-@require_POST
+@require_http_methods(["POST"])
 def create_company(request):
     name = request.POST.get("name")
+    phone = request.POST.get("phone")
+    email = request.POST.get("email")
+    address = request.POST.get("address")
+
     if not name:
         return JsonResponse({"error": "Название клиента обязательно"}, status=400)
 
-    company = Company.objects.create(name=name, type="client")
-    return JsonResponse({
-        "id": company.id,
-        "name": company.name
-    })
+    company = Company.objects.create(
+        name=name,
+        type="client",
+        phone=phone,
+        email=email,
+        address=address,
+    )
+    return JsonResponse({"id": company.id, "name": company.name})
 
 @login_required
 def deals_list(request):
@@ -98,7 +117,7 @@ def upload_document(request, pk):
                     data=blob,
                     uploader=request.user,
                 )
-                return redirect("deal_detail", pk=deal.pk)
+                return redirect("deal_edit", pk=deal.pk)
     else:
         form = DocumentUploadForm()
     return render(request, "deals/upload_document.html", {"form": form, "deal": deal})

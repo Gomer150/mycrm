@@ -10,6 +10,6 @@
     {% for err in form.file.errors %}<div class="text-danger">{{ err }}</div>{% endfor %}
   </div>
   <button class="btn btn-success" type="submit">Загрузить</button>
-  <a class="btn btn-secondary" href="{% url 'deal_detail' deal.pk %}">Отмена</a>
+  <a class="btn btn-secondary" href="{% url 'deal_edit' deal.pk %}">Отмена</a>
 </form>
 {% endblock %}

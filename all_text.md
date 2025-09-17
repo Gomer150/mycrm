@@ -355,6 +355,9 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
 <div class="container">
   {% block content %}{% endblock %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
 ```
@@ -482,6 +485,15 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
 </div>
 
 <script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+const csrftoken = getCookie('csrftoken');
+</script>
+
+<script>
 document.getElementById("save-client-btn").addEventListener("click", function() {
   let name = document.getElementById("new-client-name").value.trim();
   if (!name) {
@@ -492,7 +504,7 @@ document.getElementById("save-client-btn").addEventListener("click", function() 
   fetch("{% url 'create_company' %}", {
     method: "POST",
     headers: {
-      "X-CSRFToken": "{{ csrf_token }}",
+      "X-CSRFToken": csrftoken,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "name=" + encodeURIComponent(name)
@@ -562,7 +574,7 @@ from django.conf import settings
 from django.http import JsonResponse
 
 
-from .models import Deal, Document, Stage 
+from .models import Deal, Document, Stage, Company 
 from .forms import DealForm  
 from .forms import DocumentUploadForm
 

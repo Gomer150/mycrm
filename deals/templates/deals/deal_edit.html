@@ -49,6 +49,18 @@
           <label for="new-client-name" class="form-label">Название клиента</label>
           <input type="text" class="form-control" id="new-client-name">
         </div>
+        <div class="mb-3">
+          <label for="new-client-phone" class="form-label">Телефон</label>
+          <input type="text" class="form-control" id="new-client-phone">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="new-client-email">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-address" class="form-label">Адрес</label>
+          <textarea class="form-control" id="new-client-address"></textarea>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -70,18 +82,25 @@ const csrftoken = getCookie('csrftoken');
 <script>
 document.getElementById("save-client-btn").addEventListener("click", function() {
   let name = document.getElementById("new-client-name").value.trim();
+  let phone = document.getElementById("new-client-phone").value.trim();
+  let email = document.getElementById("new-client-email").value.trim();
+  let address = document.getElementById("new-client-address").value.trim();
+
   if (!name) {
     alert("Введите название клиента");
     return;
   }
 
-  fetch("{% url 'create_company' %}", {
+  fetch("/companies/create/", {
     method: "POST",
     headers: {
       "X-CSRFToken": csrftoken,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: "name=" + encodeURIComponent(name)
+    body: "name=" + encodeURIComponent(name) +
+          "&phone=" + encodeURIComponent(phone) +
+          "&email=" + encodeURIComponent(email) +
+          "&address=" + encodeURIComponent(address)
   })
   .then(response => response.json())
   .then(data => {
@@ -95,13 +114,17 @@ document.getElementById("save-client-btn").addEventListener("click", function() 
       option.selected = true;
       select.appendChild(option);
 
-      // закрыть модальное окно
       let modal = bootstrap.Modal.getInstance(document.getElementById("addClientModal"));
       modal.hide();
+
       document.getElementById("new-client-name").value = "";
+      document.getElementById("new-client-phone").value = "";
+      document.getElementById("new-client-email").value = "";
+      document.getElementById("new-client-address").value = "";
     }
   });
 });
+
 </script>
 
   <div class="mb-3">
