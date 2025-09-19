@@ -27,8 +27,17 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
       "X-CSRFToken": "{{ csrf_token }}",
     }
   })
-  .then(response => response.json())
+  .then(response => {
+    if (response.redirected) {
+      window.location.href = response.url;
+      return null;
+    }
+    return response.json();
+  })
   .then(data => {
+    if (!data) {
+      return;
+    }  
     // добавляем новую строку в таблицу
     let tbody = document.querySelector("table tbody");
     let tr = document.createElement("tr");

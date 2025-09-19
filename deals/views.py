@@ -32,9 +32,11 @@ def create_deal(request):
             "created_at": deal.created_at.strftime("%Y-%m-%d %H:%M")
         })
 
-
+@login_required
 def deal_edit(request, pk):
     deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return HttpResponseForbidden("Нет доступа")
     stages = Stage.objects.all()
     companies = Company.objects.all()  # 👈 добавляем список клиентов
 

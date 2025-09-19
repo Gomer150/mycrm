@@ -102,8 +102,17 @@ document.getElementById("save-client-btn").addEventListener("click", function() 
           "&email=" + encodeURIComponent(email) +
           "&address=" + encodeURIComponent(address)
   })
-  .then(response => response.json())
+  .then(response => {
+    if (response.redirected) {
+      window.location.href = response.url;
+      return null;
+    }
+    return response.json();
+  })
   .then(data => {
+    if (!data) {
+      return;
+    }
     if (data.error) {
       alert(data.error);
     } else {
@@ -127,13 +136,6 @@ document.getElementById("save-client-btn").addEventListener("click", function() 
 
 </script>
 
-  <div class="mb-3">
-    <label class="form-label">Владелец</label>
-    <input type="text" class="form-control" value="{{ deal.owner.username }}" disabled>
-  </div>
-
-  <button type="submit" class="btn btn-success">Сохранить</button>
-</form>
 
 <hr>
 
