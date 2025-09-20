@@ -22,20 +22,25 @@
     </select>
   </div>
 
-<div class="mb-3">
-  <label for="client" class="form-label">Клиент</label>
-  <div class="input-group">
-    <select class="form-select" id="client" name="client_id">
-      <option value="">— выберите клиента —</option>
-      {% for company in companies %}
-        <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>
-          {{ company.name }}
-        </option>
-      {% endfor %}
-    </select>
-    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">+</button>
+  <div class="mb-3">
+    <label for="client" class="form-label">Клиент</label>
+    <div class="input-group">
+      <select class="form-select" id="client" name="client_id">
+        <option value="">— выберите клиента —</option>
+        {% for company in companies %}
+          <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>
+            {{ company.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">+</button>
+    </div>
   </div>
-</div>
+
+  <div class="mt-3 text-end">
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+  </div>
+</form>
 
 <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -69,6 +74,110 @@
     </div>
   </div>
 </div>
+
+<hr class="my-4">
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h4 class="mb-0">Действия</h4>
+  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addActionModal">+</button>
+</div>
+<div id="deal-actions-alert" class="alert d-none" role="alert"></div>
+<ul class="list-group" id="deal-actions-list">
+  {% for action in actions %}
+  <li class="list-group-item action-item" data-action-id="{{ action.id }}">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div><strong>Начало:</strong> <span class="action-starts-at">{{ action.starts_at|date:"d.m.Y H:i" }}</span></div>
+      <a href="#" class="delete-icon action-delete" data-action-id="{{ action.id }}" title="Удалить действие"></a>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small mb-1">Описание</label>
+      <textarea class="form-control action-description" rows="2">{{ action.description }}</textarea>
+    </div>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Напомнить</label>
+        <input type="datetime-local" class="form-control action-remind-at" value="{{ action.remind_at|date:'Y-m-d\\TH:i' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Периодичность</label>
+        <select class="form-select action-recurrence">
+          {% for value, label in recurrence_choices %}
+          <option value="{{ value }}" {% if action.recurrence == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 custom-interval-wrapper {% if action.recurrence != 'custom' %}d-none{% endif %}">
+        <label class="form-label small mb-1">Интервал (дни)</label>
+        <input type="number" class="form-control action-custom-interval" min="1" value="{{ action.custom_interval_days|default_if_none:'' }}">
+      </div>
+      <div class="col-12 mt-2 text-end">
+        <button type="button" class="btn btn-sm btn-primary save-action-btn" data-action-id="{{ action.id }}">Сохранить</button>
+      </div>
+    </div>
+  </li>
+  {% empty %}
+  <li class="list-group-item text-muted" id="no-actions-placeholder">Действий пока нет</li>
+  {% endfor %}
+</ul>
+
+<div class="modal fade" id="addActionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить действие</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-action-form">
+          <div class="alert alert-danger d-none" id="action-form-errors"></div>
+          <div class="mb-3">
+            {{ action_form.description.label_tag }}
+            {{ action_form.description }}
+          </div>
+          <div class="mb-3">
+            {{ action_form.remind_at.label_tag }}
+            {{ action_form.remind_at }}
+          </div>
+          <div class="mb-3">
+            {{ action_form.recurrence.label_tag }}
+            {{ action_form.recurrence }}
+          </div>
+          <div class="mb-3 d-none" id="new-action-custom-interval-wrapper">
+            {{ action_form.custom_interval_days.label_tag }}
+            {{ action_form.custom_interval_days }}
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="create-action-btn">Добавить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4">
+
+<h4>Документы</h4>
+<ul class="list-group">
+  {% for doc in deal.documents.all %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      {{ forloop.counter }}. {{ doc.filename }} —
+      <a href="{% url 'download_document' doc.pk %}">скачать</a>
+    </div>
+    <a href="{% url 'delete_document' doc.pk %}"
+       onclick="return confirm('Удалить документ {{ doc.filename }}?');"
+       class="delete-icon"></a>
+  </li>
+  {% empty %}
+  <li class="list-group-item">Нет документов</li>
+  {% endfor %}
+</ul>
+
+<a class="btn btn-primary mt-2" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+
+{{ recurrence_options|json_script:"deal-action-choices-data" }}
 
 <script>
 function getCookie(name) {
@@ -133,30 +242,407 @@ document.getElementById("save-client-btn").addEventListener("click", function() 
     }
   });
 });
-
 </script>
 
+<script>
+const recurrenceOptions = JSON.parse(document.getElementById("deal-action-choices-data").textContent);
+const dealId = {{ deal.pk }};
+const actionsList = document.getElementById("deal-actions-list");
+const actionsAlert = document.getElementById("deal-actions-alert");
+const newActionModalElement = document.getElementById("addActionModal");
+const newActionForm = document.getElementById("add-action-form");
+const newActionErrors = document.getElementById("action-form-errors");
+const newActionRecurrence = newActionForm.querySelector('select[name="recurrence"]');
+const newActionCustomWrapper = document.getElementById("new-action-custom-interval-wrapper");
+const newActionCustomInput = newActionForm.querySelector('input[name="custom_interval_days"]');
 
-<hr>
+function showActionMessage(message, type = "danger") {
+  if (!actionsAlert) return;
+  actionsAlert.textContent = message;
+  actionsAlert.className = `alert alert-${type}`;
+}
 
-<h4>Документы</h4>
-<ul class="list-group">
-  {% for doc in deal.documents.all %}
-  <li class="list-group-item d-flex justify-content-between align-items-center">
-    <div>
-      {{ forloop.counter }}. {{ doc.filename }} —
-      <a href="{% url 'download_document' doc.pk %}">скачать</a>
-    </div>
-    <a href="{% url 'delete_document' doc.pk %}"
-       onclick="return confirm('Удалить документ {{ doc.filename }}?');"
-       class="delete-icon"></a>
-  </li>
-  {% empty %}
-  <li class="list-group-item">Нет документов</li>
-  {% endfor %}
-</ul>
+function clearActionMessage() {
+  if (!actionsAlert) return;
+  actionsAlert.className = "alert d-none";
+  actionsAlert.textContent = "";
+}
 
-<a class="btn btn-primary mt-2" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+function formatErrors(errors) {
+  if (!errors) {
+    return "Проверьте введённые данные.";
+  }
+  if (Array.isArray(errors)) {
+    return errors.join(" ");
+  }
+  const messages = [];
+  Object.keys(errors).forEach((key) => {
+    const fieldErrors = errors[key];
+    if (Array.isArray(fieldErrors)) {
+      messages.push(fieldErrors.join(" "));
+    } else if (fieldErrors && typeof fieldErrors === "object" && Array.isArray(fieldErrors.messages)) {
+      messages.push(fieldErrors.messages.join(" "));
+    } else if (fieldErrors && typeof fieldErrors === "object" && fieldErrors.message) {
+      messages.push(fieldErrors.message);
+    } else if (fieldErrors !== undefined && fieldErrors !== null) {
+      messages.push(String(fieldErrors));
+    }
+  });
+  return messages.join(" ");
+}
 
+function sendActionRequest(url, payload) {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken,
+      "Accept": "application/json",
+    },
+    body: JSON.stringify(payload || {}),
+  }).then((response) =>
+    response
+      .json()
+      .catch(() => ({}))
+      .then((data) => ({ ok: response.ok, status: response.status, data }))
+  );
+}
+
+function toggleCustomInterval(wrapper, recurrenceValue, input) {
+  if (!wrapper) return;
+  if (recurrenceValue === "custom") {
+    wrapper.classList.remove("d-none");
+  } else {
+    wrapper.classList.add("d-none");
+    if (input) {
+      input.value = "";
+    }
+  }
+}
+
+function toggleNewActionCustom() {
+  toggleCustomInterval(newActionCustomWrapper, newActionRecurrence.value, newActionCustomInput);
+}
+
+function removeNoActionsPlaceholder() {
+  const placeholder = document.getElementById("no-actions-placeholder");
+  if (placeholder) {
+    placeholder.remove();
+  }
+}
+
+function ensureNoActionsPlaceholder() {
+  if (!actionsList) return;
+  if (!actionsList.querySelector(".action-item") && !document.getElementById("no-actions-placeholder")) {
+    const placeholder = document.createElement("li");
+    placeholder.className = "list-group-item text-muted";
+    placeholder.id = "no-actions-placeholder";
+    placeholder.textContent = "Действий пока нет";
+    actionsList.appendChild(placeholder);
+  }
+}
+
+function renderActionItem(action) {
+  const li = document.createElement("li");
+  li.className = "list-group-item action-item";
+  li.dataset.actionId = action.id;
+
+  const header = document.createElement("div");
+  header.className = "d-flex justify-content-between align-items-center mb-2";
+
+  const startWrapper = document.createElement("div");
+  const startLabel = document.createElement("strong");
+  startLabel.textContent = "Начало:";
+  const startSpan = document.createElement("span");
+  startSpan.className = "action-starts-at";
+  startSpan.textContent = action.starts_at_display;
+  startWrapper.appendChild(startLabel);
+  startWrapper.appendChild(document.createTextNode(" "));
+  startWrapper.appendChild(startSpan);
+
+  const deleteLink = document.createElement("a");
+  deleteLink.href = "#";
+  deleteLink.className = "delete-icon action-delete";
+  deleteLink.dataset.actionId = action.id;
+  deleteLink.title = "Удалить действие";
+
+  header.appendChild(startWrapper);
+  header.appendChild(deleteLink);
+  li.appendChild(header);
+
+  const descriptionGroup = document.createElement("div");
+  descriptionGroup.className = "mb-3";
+  const descriptionLabel = document.createElement("label");
+  descriptionLabel.className = "form-label small mb-1";
+  descriptionLabel.textContent = "Описание";
+  const descriptionField = document.createElement("textarea");
+  descriptionField.className = "form-control action-description";
+  descriptionField.rows = 2;
+  descriptionField.value = action.description || "";
+  descriptionGroup.appendChild(descriptionLabel);
+  descriptionGroup.appendChild(descriptionField);
+  li.appendChild(descriptionGroup);
+
+  const row = document.createElement("div");
+  row.className = "row g-2 align-items-end";
+
+  const remindCol = document.createElement("div");
+  remindCol.className = "col-md-4";
+  const remindLabel = document.createElement("label");
+  remindLabel.className = "form-label small mb-1";
+  remindLabel.textContent = "Напомнить";
+  const remindInput = document.createElement("input");
+  remindInput.type = "datetime-local";
+  remindInput.className = "form-control action-remind-at";
+  if (action.remind_at_value) {
+    remindInput.value = action.remind_at_value;
+  }
+  remindCol.appendChild(remindLabel);
+  remindCol.appendChild(remindInput);
+  row.appendChild(remindCol);
+
+  const recurrenceCol = document.createElement("div");
+  recurrenceCol.className = "col-md-4";
+  const recurrenceLabel = document.createElement("label");
+  recurrenceLabel.className = "form-label small mb-1";
+  recurrenceLabel.textContent = "Периодичность";
+  const recurrenceSelect = document.createElement("select");
+  recurrenceSelect.className = "form-select action-recurrence";
+  recurrenceOptions.forEach((option) => {
+    const opt = document.createElement("option");
+    opt.value = option.value;
+    opt.textContent = option.label;
+    if (option.value === action.recurrence) {
+      opt.selected = true;
+    }
+    recurrenceSelect.appendChild(opt);
+  });
+  recurrenceCol.appendChild(recurrenceLabel);
+  recurrenceCol.appendChild(recurrenceSelect);
+  row.appendChild(recurrenceCol);
+
+  const customCol = document.createElement("div");
+  customCol.className = "col-md-4 custom-interval-wrapper";
+  if (action.recurrence !== "custom") {
+    customCol.classList.add("d-none");
+  }
+  const customLabel = document.createElement("label");
+  customLabel.className = "form-label small mb-1";
+  customLabel.textContent = "Интервал (дни)";
+  const customInput = document.createElement("input");
+  customInput.type = "number";
+  customInput.className = "form-control action-custom-interval";
+  customInput.min = "1";
+  if (action.custom_interval_days) {
+    customInput.value = action.custom_interval_days;
+  }
+  customCol.appendChild(customLabel);
+  customCol.appendChild(customInput);
+  row.appendChild(customCol);
+
+  const buttonCol = document.createElement("div");
+  buttonCol.className = "col-12 mt-2 text-end";
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "btn btn-sm btn-primary save-action-btn";
+  saveButton.dataset.actionId = action.id;
+  saveButton.textContent = "Сохранить";
+  buttonCol.appendChild(saveButton);
+  row.appendChild(buttonCol);
+
+  li.appendChild(row);
+  return li;
+}
+
+function updateActionItem(actionItem, action) {
+  actionItem.dataset.actionId = action.id;
+  const startSpan = actionItem.querySelector(".action-starts-at");
+  if (startSpan) {
+    startSpan.textContent = action.starts_at_display;
+  }
+  const descriptionField = actionItem.querySelector(".action-description");
+  if (descriptionField) {
+    descriptionField.value = action.description || "";
+  }
+  const remindInput = actionItem.querySelector(".action-remind-at");
+  if (remindInput) {
+    remindInput.value = action.remind_at_value || "";
+  }
+  const recurrenceSelect = actionItem.querySelector(".action-recurrence");
+  if (recurrenceSelect) {
+    recurrenceSelect.value = action.recurrence;
+  }
+  const customWrapper = actionItem.querySelector(".custom-interval-wrapper");
+  if (customWrapper) {
+    const customInput = customWrapper.querySelector(".action-custom-interval");
+    if (action.recurrence === "custom") {
+      customWrapper.classList.remove("d-none");
+      if (customInput) {
+        customInput.value = action.custom_interval_days || "";
+      }
+    } else {
+      customWrapper.classList.add("d-none");
+      if (customInput) {
+        customInput.value = "";
+      }
+    }
+  }
+}
+
+function saveAction(actionItem) {
+  clearActionMessage();
+  const actionId = actionItem.dataset.actionId;
+  const descriptionField = actionItem.querySelector(".action-description");
+  const remindField = actionItem.querySelector(".action-remind-at");
+  const recurrenceSelect = actionItem.querySelector(".action-recurrence");
+  const customWrapper = actionItem.querySelector(".custom-interval-wrapper");
+  const customInput = customWrapper ? customWrapper.querySelector(".action-custom-interval") : null;
+
+  const payload = {
+    description: descriptionField ? descriptionField.value.trim() : "",
+    remind_at: remindField && remindField.value ? remindField.value : null,
+    recurrence: recurrenceSelect ? recurrenceSelect.value : "none",
+    custom_interval_days: customInput && customInput.value ? customInput.value : null,
+  };
+
+  sendActionRequest(`/deals/${dealId}/actions/${actionId}/update/`, payload)
+    .then(({ ok, data }) => {
+      if (!ok) {
+        const message = data && (data.error || formatErrors(data.errors));
+        showActionMessage(message || "Не удалось сохранить действие.");
+        return;
+      }
+      updateActionItem(actionItem, data.action);
+      showActionMessage("Действие обновлено.", "success");
+    })
+    .catch(() => {
+      showActionMessage("Не удалось сохранить действие.");
+    });
+}
+
+function deleteAction(actionItem) {
+  if (!confirm("Удалить это действие?")) {
+    return;
+  }
+  clearActionMessage();
+  const actionId = actionItem.dataset.actionId;
+  sendActionRequest(`/deals/${dealId}/actions/${actionId}/delete/`)
+    .then(({ ok, data }) => {
+      if (!ok) {
+        const message = data && (data.error || formatErrors(data.errors));
+        showActionMessage(message || "Не удалось удалить действие.");
+        return;
+      }
+      actionItem.remove();
+      ensureNoActionsPlaceholder();
+      showActionMessage("Действие удалено.", "success");
+    })
+    .catch(() => {
+      showActionMessage("Не удалось удалить действие.");
+    });
+}
+
+function attachActionEvents(actionItem) {
+  const recurrenceSelect = actionItem.querySelector(".action-recurrence");
+  if (recurrenceSelect) {
+    recurrenceSelect.addEventListener("change", () => {
+      const wrapper = actionItem.querySelector(".custom-interval-wrapper");
+      const input = wrapper ? wrapper.querySelector(".action-custom-interval") : null;
+      toggleCustomInterval(wrapper, recurrenceSelect.value, input);
+    });
+  }
+  const saveButton = actionItem.querySelector(".save-action-btn");
+  if (saveButton) {
+    saveButton.addEventListener("click", () => {
+      saveAction(actionItem);
+    });
+  }
+  const deleteLink = actionItem.querySelector(".action-delete");
+  if (deleteLink) {
+    deleteLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      deleteAction(actionItem);
+    });
+  }
+}
+
+document.querySelectorAll("#deal-actions-list .action-item").forEach((item) => {
+  attachActionEvents(item);
+});
+
+document.getElementById("create-action-btn").addEventListener("click", function() {
+  clearActionMessage();
+  const descriptionField = newActionForm.querySelector('textarea[name="description"]');
+  const remindField = newActionForm.querySelector('input[name="remind_at"]');
+  const payload = {
+    description: descriptionField ? descriptionField.value.trim() : "",
+    remind_at: remindField && remindField.value ? remindField.value : null,
+    recurrence: newActionRecurrence.value,
+    custom_interval_days: newActionCustomInput && newActionCustomInput.value ? newActionCustomInput.value : null,
+  };
+
+  sendActionRequest(`/deals/${dealId}/actions/create/`, payload)
+    .then(({ ok, data }) => {
+      if (!ok) {
+        const message = data && (data.error || formatErrors(data.errors));
+        if (newActionErrors) {
+          newActionErrors.textContent = message || "Не удалось создать действие.";
+          newActionErrors.classList.remove("d-none");
+        } else {
+          showActionMessage(message || "Не удалось создать действие.");
+        }
+        return;
+      }
+
+      if (newActionErrors) {
+        newActionErrors.classList.add("d-none");
+        newActionErrors.textContent = "";
+      }
+
+      const action = data.action;
+      const item = renderActionItem(action);
+      removeNoActionsPlaceholder();
+      actionsList.appendChild(item);
+      attachActionEvents(item);
+
+      const modal = bootstrap.Modal.getInstance(newActionModalElement);
+      if (modal) {
+        modal.hide();
+      }
+
+      newActionForm.reset();
+      toggleNewActionCustom();
+      showActionMessage("Действие создано.", "success");
+    })
+    .catch(() => {
+      if (newActionErrors) {
+        newActionErrors.textContent = "Не удалось создать действие.";
+        newActionErrors.classList.remove("d-none");
+      } else {
+        showActionMessage("Не удалось создать действие.");
+      }
+    });
+});
+
+document.querySelectorAll('#add-action-form select[name="recurrence"]').forEach(() => {
+  toggleNewActionCustom();
+});
+
+newActionRecurrence.addEventListener("change", () => {
+  toggleNewActionCustom();
+});
+
+newActionModalElement.addEventListener("hidden.bs.modal", () => {
+  if (newActionErrors) {
+    newActionErrors.classList.add("d-none");
+    newActionErrors.textContent = "";
+  }
+  newActionForm.reset();
+  toggleNewActionCustom();
+});
+
+// Ensure placeholder visibility on load
+ensureNoActionsPlaceholder();
+</script>
 
 {% endblock %}

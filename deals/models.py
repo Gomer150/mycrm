@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 
@@ -101,6 +102,41 @@ class DealContact(models.Model):
 
     def __str__(self):
         return f"{self.contact} в {self.deal}"
+
+
+class DealAction(models.Model):
+    class Recurrence(models.TextChoices):
+        NONE = "none", "Нет"
+        DAILY = "daily", "Ежедневно"
+        WEEKLY = "weekly", "Еженедельно"
+        MONTHLY = "monthly", "Ежемесячно"
+        YEARLY = "yearly", "Ежегодно"
+        CUSTOM = "custom", "Пользовательский интервал"
+
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name="actions")
+    description = models.TextField(verbose_name="Описание")
+    starts_at = models.DateTimeField(default=timezone.now, editable=False, verbose_name="Начало")
+    remind_at = models.DateTimeField(blank=True, null=True, verbose_name="Напомнить")
+    recurrence = models.CharField(
+        max_length=20,
+        choices=Recurrence.choices,
+        default=Recurrence.NONE,
+        verbose_name="Периодичность",
+    )
+    custom_interval_days = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Интервал (дни)",
+        help_text="Используется только для пользовательской периодичности.",
+    )
+
+    class Meta:
+        ordering = ["starts_at"]
+        verbose_name = "Действие"
+        verbose_name_plural = "Действия"
+
+    def __str__(self):
+        return f"{self.deal} — {self.description[:50]}"
 
 
 class Document(models.Model):

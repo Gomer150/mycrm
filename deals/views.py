@@ -1,18 +1,69 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseForbidden, Http404
-from django.utils.encoding import smart_str
+import json
+
 from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.encoding import smart_str
+from django.views.decorators.http import require_http_methods, require_POST
+
+from .forms import DealActionForm, DealForm, DocumentUploadForm
+from .models import Company, Deal, DealAction, Document, Stage
 
 
-from .models import Deal, Document, Stage, Company 
-from .forms import DealForm  
-from .forms import DocumentUploadForm
+ACTION_FORM_FIELDS = {"description", "remind_at", "recurrence", "custom_interval_days"}
 
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
+
+def _get_action_form_data(request):
+    content_type = request.META.get("CONTENT_TYPE", "")
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+    else:
+        payload = request.POST.dict()
+
+    data = {}
+    for field in ACTION_FORM_FIELDS:
+        if field in payload:
+            value = payload[field]
+            if value in (None, False):
+                data[field] = ""
+            elif isinstance(value, (int, float)):
+                data[field] = str(value)
+            else:
+                data[field] = value
+
+    if "recurrence" not in data:
+        data["recurrence"] = DealAction.Recurrence.NONE
+
+    return data
+
+
+def _serialize_action(action):
+    starts_at_local = timezone.localtime(action.starts_at)
+    payload = {
+        "id": action.id,
+        "description": action.description,
+        "starts_at": starts_at_local.isoformat(),
+        "starts_at_display": starts_at_local.strftime("%d.%m.%Y %H:%M"),
+        "remind_at": None,
+        "remind_at_display": "",
+        "remind_at_value": "",
+        "recurrence": action.recurrence,
+        "recurrence_display": action.get_recurrence_display(),
+        "custom_interval_days": action.custom_interval_days,
+    }
+
+    if action.remind_at:
+        remind_at_local = timezone.localtime(action.remind_at)
+        payload["remind_at"] = remind_at_local.isoformat()
+        payload["remind_at_display"] = remind_at_local.strftime("%d.%m.%Y %H:%M")
+        payload["remind_at_value"] = remind_at_local.strftime("%Y-%m-%dT%H:%M")
+
+    return payload
 
 
 def index(request):
@@ -39,6 +90,12 @@ def deal_edit(request, pk):
         return HttpResponseForbidden("Нет доступа")
     stages = Stage.objects.all()
     companies = Company.objects.all()  # 👈 добавляем список клиентов
+    actions = deal.actions.all()
+    action_form = DealActionForm()
+    recurrence_choices = DealAction.Recurrence.choices
+    recurrence_options = [
+        {"value": value, "label": label} for value, label in recurrence_choices
+    ]
 
     if request.method == "POST":
         deal.title = request.POST.get("title")
@@ -54,6 +111,10 @@ def deal_edit(request, pk):
             "deal": deal,
             "stages": stages,
             "companies": companies,  # 👈 передаём в шаблон
+            "actions": actions,
+            "action_form": action_form,
+            "recurrence_choices": recurrence_choices,
+            "recurrence_options": recurrence_options,
         },
     )
 
@@ -77,6 +138,52 @@ def create_company(request):
         address=address,
     )
     return JsonResponse({"id": company.id, "name": company.name})
+
+
+@login_required
+@require_http_methods(["POST"])
+def deal_action_create(request, pk):
+    deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return JsonResponse({"error": "Нет доступа"}, status=403)
+
+    form = DealActionForm(_get_action_form_data(request))
+    if form.is_valid():
+        action = form.save(commit=False)
+        action.deal = deal
+        action.save()
+        return JsonResponse({"action": _serialize_action(action)}, status=201)
+
+    return JsonResponse({"errors": form.errors}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def deal_action_update(request, pk, action_id):
+    deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return JsonResponse({"error": "Нет доступа"}, status=403)
+
+    action = get_object_or_404(DealAction, pk=action_id, deal=deal)
+    form = DealActionForm(_get_action_form_data(request), instance=action)
+    if form.is_valid():
+        action = form.save()
+        return JsonResponse({"action": _serialize_action(action)})
+
+    return JsonResponse({"errors": form.errors}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def deal_action_delete(request, pk, action_id):
+    deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return JsonResponse({"error": "Нет доступа"}, status=403)
+
+    action = get_object_or_404(DealAction, pk=action_id, deal=deal)
+    action.delete()
+    return JsonResponse({"status": "ok"})
+
 
 @login_required
 def deals_list(request):
