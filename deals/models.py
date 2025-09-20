@@ -26,6 +26,8 @@ class Company(models.Model):
     phone = models.CharField(max_length=50, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    inn = models.CharField(max_length=12, blank=True, null=True, verbose_name="ИНН")
+    website = models.URLField(blank=True, null=True, verbose_name="Сайт")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -10,7 +11,7 @@ from django.utils.encoding import smart_str
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import DealActionForm, DealForm, DocumentUploadForm
-from .models import Company, Deal, DealAction, Document, Stage
+from .models import Company, Contact, Deal, DealAction, Document, Stage
 
 
 ACTION_FORM_FIELDS = {"description", "remind_at", "recurrence", "custom_interval_days"}
@@ -67,6 +68,18 @@ def _serialize_action(action):
     return payload
 
 
+def _serialize_contact(contact):
+    return {
+        "id": contact.id,
+        "name": contact.name,
+        "position": contact.position or "",
+        "phone": contact.phone or "",
+        "email": contact.email or "",
+        "messengers": contact.messengers or "",
+        "company_id": contact.company_id,
+    }
+
+
 def index(request):
     if request.user.is_authenticated:
         return redirect("deals_list")
@@ -91,6 +104,7 @@ def deal_edit(request, pk):
         return HttpResponseForbidden("Нет доступа")
     stages = Stage.objects.all()
     companies = Company.objects.all()  # 👈 добавляем список клиентов
+    contacts = Contact.objects.filter(company=deal.client).order_by("name") if deal.client else Contact.objects.none()
     actions = deal.actions.all()
     action_form = DealActionForm()
     recurrence_choices = DealAction.Recurrence.choices
@@ -112,7 +126,26 @@ def deal_edit(request, pk):
             except (InvalidOperation, TypeError):
                 pass
         deal.save()
+        if "save_and_exit" in request.POST:
+            return redirect("deals_list")
         return redirect("deal_edit", pk=deal.pk)
+
+    companies_data = [
+        {
+            "id": company.id,
+            "name": company.name,
+            "phone": company.phone or "",
+            "email": company.email or "",
+            "address": company.address or "",
+            "inn": company.inn or "",
+            "website": company.website or "",
+            "type": company.type,
+            "type_display": company.get_type_display(),
+        }
+        for company in companies
+    ]
+
+    contacts_data = [_serialize_contact(contact) for contact in contacts]
 
     return render(
         request,
@@ -121,6 +154,9 @@ def deal_edit(request, pk):
             "deal": deal,
             "stages": stages,
             "companies": companies,  # 👈 передаём в шаблон
+            "contacts": contacts,
+            "companies_data": companies_data,
+            "contacts_data": contacts_data,
             "actions": actions,
             "action_form": action_form,
             "recurrence_choices": recurrence_choices,
@@ -136,18 +172,208 @@ def create_company(request):
     phone = request.POST.get("phone")
     email = request.POST.get("email")
     address = request.POST.get("address")
+    inn = request.POST.get("inn", "")
+    website = request.POST.get("website", "")
 
     if not name:
         return JsonResponse({"error": "Название клиента обязательно"}, status=400)
 
+    def _normalize(value):
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
     company = Company.objects.create(
         name=name,
         type="client",
-        phone=phone,
-        email=email,
-        address=address,
+        phone=_normalize(phone),
+        email=_normalize(email),
+        address=_normalize(address),
+        inn=_normalize(inn),
+        website=_normalize(website),
     )
-    return JsonResponse({"id": company.id, "name": company.name})
+    return JsonResponse(
+        {
+            "id": company.id,
+            "name": company.name,
+            "phone": company.phone or "",
+            "email": company.email or "",
+            "address": company.address or "",
+            "inn": company.inn or "",
+            "website": company.website or "",
+            "type": company.type,
+            "type_display": company.get_type_display(),
+        }
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_company(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+
+    content_type = request.META.get("CONTENT_TYPE", "")
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+    else:
+        payload = request.POST.dict()
+
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return JsonResponse({"errors": {"name": ["Укажите название клиента."]}}, status=400)
+
+    def _normalize(value):
+        if value is None:
+            return None
+        value = str(value).strip()
+        return value or None
+
+    company.name = name
+    company.phone = _normalize(payload.get("phone"))
+    company.email = _normalize(payload.get("email"))
+    company.address = _normalize(payload.get("address"))
+    company.inn = _normalize(payload.get("inn"))
+    company.website = _normalize(payload.get("website"))
+
+    try:
+        company.full_clean()
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+
+    company.save()
+
+    return JsonResponse(
+        {
+            "id": company.id,
+            "name": company.name,
+            "phone": company.phone or "",
+            "email": company.email or "",
+            "address": company.address or "",
+            "inn": company.inn or "",
+            "website": company.website or "",
+            "type": company.type,
+            "type_display": company.get_type_display(),
+        }
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def deal_contact_create(request, pk):
+    deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return JsonResponse({"error": "Нет доступа"}, status=403)
+    if not deal.client:
+        return JsonResponse({"error": "Сначала выберите клиента для сделки."}, status=400)
+
+    content_type = request.META.get("CONTENT_TYPE", "")
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+    else:
+        payload = request.POST.dict()
+
+    def _normalize(value):
+        if value is None:
+            return None
+        value = str(value).strip()
+        return value or None
+
+    name = _normalize(payload.get("name"))
+    if not name:
+        return JsonResponse({"errors": {"name": ["Укажите имя контакта."]}}, status=400)
+
+    contact = Contact(
+        company=deal.client,
+        owner=deal.owner,
+        name=name,
+        position=_normalize(payload.get("position")) or "",
+        phone=_normalize(payload.get("phone")) or "",
+        email=_normalize(payload.get("email")) or "",
+        messengers=_normalize(payload.get("messengers")) or "",
+    )
+
+    try:
+        contact.full_clean()
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+
+    contact.save()
+    return JsonResponse({"contact": _serialize_contact(contact)}, status=201)
+
+
+@login_required
+@require_http_methods(["POST"])
+def deal_contact_update(request, pk, contact_id):
+    deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return JsonResponse({"error": "Нет доступа"}, status=403)
+
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if deal.client_id and contact.company_id != deal.client_id:
+        return JsonResponse({"error": "Контакт не относится к выбранному клиенту."}, status=400)
+
+    content_type = request.META.get("CONTENT_TYPE", "")
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {}
+    else:
+        payload = request.POST.dict()
+
+    def _normalize(value):
+        if value is None:
+            return None
+        value = str(value).strip()
+        return value or None
+
+    name = _normalize(payload.get("name"))
+    if not name:
+        return JsonResponse({"errors": {"name": ["Укажите имя контакта."]}}, status=400)
+
+    contact.name = name
+    contact.position = _normalize(payload.get("position")) or ""
+    contact.phone = _normalize(payload.get("phone")) or ""
+    contact.email = _normalize(payload.get("email")) or ""
+    contact.messengers = _normalize(payload.get("messengers")) or ""
+
+    try:
+        contact.full_clean()
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+
+    contact.save()
+    return JsonResponse({"contact": _serialize_contact(contact)})
+
+
+@login_required
+@require_http_methods(["POST"])
+def deal_contact_delete(request, pk, contact_id):
+    deal = get_object_or_404(Deal, pk=pk)
+    if not (request.user.is_superuser or deal.owner == request.user):
+        return JsonResponse({"error": "Нет доступа"}, status=403)
+
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if deal.client_id and contact.company_id != deal.client_id:
+        return JsonResponse({"error": "Контакт не относится к выбранному клиенту."}, status=400)
+
+    contact.delete()
+    return JsonResponse({"status": "ok"})
+
+
+@login_required
+@require_http_methods(["GET"])
+def company_contacts(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    contacts = company.contacts.all().order_by("name")
+    return JsonResponse({"contacts": [_serialize_contact(contact) for contact in contacts]})
 
 
 @login_required

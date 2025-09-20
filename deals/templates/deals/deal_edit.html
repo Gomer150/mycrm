@@ -4,7 +4,7 @@
 
 <h2>Редактирование сделки</h2>
 
-<form method="post" action="{% url 'deal_edit' deal.pk %}">
+<form method="post" action="{% url 'deal_edit' deal.pk %}" id="deal-form">
   {% csrf_token %}
 
   <div class="mb-3">
@@ -26,7 +26,7 @@
   <div class="mb-3">
     <label for="cost" class="form-label">Стоимость сделки</label>
     <div class="input-group">
-      <input type="number" class="form-control" id="cost" name="cost" step="0.01" min="0" value="{% if deal.cost is not None %}{{ deal.cost|unlocalize }}{% endif %}">
+      <input type="text" class="form-control" id="cost" name="cost" inputmode="decimal" autocomplete="off" value="{% if deal.cost is not None %}{{ deal.cost|unlocalize }}{% endif %}">
       <span class="input-group-text">₽</span>
     </div>
   </div>
@@ -46,9 +46,6 @@
     </div>
   </div>
 
-  <div class="mt-3 text-end">
-    <button type="submit" class="btn btn-primary">Сохранить</button>
-  </div>
 </form>
 
 <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
@@ -72,6 +69,14 @@
           <input type="email" class="form-control" id="new-client-email">
         </div>
         <div class="mb-3">
+          <label for="new-client-inn" class="form-label">ИНН</label>
+          <input type="text" class="form-control" id="new-client-inn">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-website" class="form-label">Сайт</label>
+          <input type="url" class="form-control" id="new-client-website" placeholder="https://example.com">
+        </div>
+        <div class="mb-3">
           <label for="new-client-address" class="form-label">Адрес</label>
           <textarea class="form-control" id="new-client-address"></textarea>
         </div>
@@ -79,6 +84,136 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
         <button type="button" class="btn btn-primary" id="save-client-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4">
+
+<div class="card" id="client-editor-card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h4 class="mb-0">Данные клиента</h4>
+    <span class="badge bg-secondary" id="client-editor-type" hidden></span>
+  </div>
+  <div class="card-body">
+    <div id="client-editor-alert" class="alert d-none" role="alert"></div>
+    <p class="text-muted" id="client-editor-empty" {% if deal.client_id %}hidden{% endif %}>
+      Выберите клиента выше, чтобы отредактировать его данные.
+    </p>
+    <div id="client-editor-fields" {% if not deal.client_id %}class="d-none"{% endif %}>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="client-editor-name" class="form-label">Название</label>
+          <input type="text" class="form-control" id="client-editor-name">
+        </div>
+        <div class="col-md-6">
+          <label for="client-editor-phone" class="form-label">Телефон</label>
+          <input type="text" class="form-control" id="client-editor-phone">
+        </div>
+        <div class="col-md-6">
+          <label for="client-editor-email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="client-editor-email">
+        </div>
+        <div class="col-md-3">
+          <label for="client-editor-inn" class="form-label">ИНН</label>
+          <input type="text" class="form-control" id="client-editor-inn">
+        </div>
+        <div class="col-md-3">
+          <label for="client-editor-website" class="form-label">Сайт</label>
+          <input type="url" class="form-control" id="client-editor-website" placeholder="https://example.com">
+        </div>
+        <div class="col-12">
+          <label for="client-editor-address" class="form-label">Адрес</label>
+          <textarea class="form-control" id="client-editor-address" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="text-end mt-3">
+        <button type="button" class="btn btn-sm btn-primary" id="client-editor-save">Сохранить клиента</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4">
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h4 class="mb-0">Контакты</h4>
+  <button type="button" class="btn btn-outline-primary btn-sm" id="add-contact-btn" data-bs-toggle="modal" data-bs-target="#addContactModal">+</button>
+</div>
+<div id="deal-contacts-alert" class="alert d-none" role="alert"></div>
+<ul class="list-group" id="deal-contacts-list">
+  {% for contact in contacts %}
+  <li class="list-group-item contact-item" data-contact-id="{{ contact.id }}">
+    <div class="row g-2">
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Имя</label>
+        <input type="text" class="form-control contact-name" value="{{ contact.name }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Должность</label>
+        <input type="text" class="form-control contact-position" value="{{ contact.position|default_if_none:'' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Телефон</label>
+        <input type="text" class="form-control contact-phone" value="{{ contact.phone|default_if_none:'' }}">
+      </div>
+    </div>
+    <div class="row g-2 mt-2">
+      <div class="col-md-6">
+        <label class="form-label small mb-1">Email</label>
+        <input type="email" class="form-control contact-email" value="{{ contact.email|default_if_none:'' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label small mb-1">Телеграм/мессенджеры</label>
+        <textarea class="form-control contact-messengers" rows="2">{{ contact.messengers|default_if_none:'' }}</textarea>
+      </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="button" class="btn btn-outline-danger btn-sm contact-delete" data-contact-id="{{ contact.id }}">Удалить</button>
+      <button type="button" class="btn btn-sm btn-primary save-contact-btn" data-contact-id="{{ contact.id }}">Сохранить</button>
+    </div>
+  </li>
+  {% empty %}
+  <li class="list-group-item text-muted" id="no-contacts-placeholder">Контактов пока нет</li>
+  {% endfor %}
+</ul>
+
+<div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить контакт</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-contact-form">
+          <div class="alert alert-danger d-none" id="contact-form-errors"></div>
+          <div class="mb-3">
+            <label for="new-contact-name" class="form-label">Имя</label>
+            <input type="text" class="form-control" id="new-contact-name" required>
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-position" class="form-label">Должность</label>
+            <input type="text" class="form-control" id="new-contact-position">
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-phone" class="form-label">Телефон</label>
+            <input type="text" class="form-control" id="new-contact-phone">
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="new-contact-email">
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-messengers" class="form-label">Мессенджеры</label>
+            <textarea class="form-control" id="new-contact-messengers" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="create-contact-btn">Добавить</button>
       </div>
     </div>
   </div>
@@ -186,6 +321,13 @@
 
 <a class="btn btn-primary mt-2" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
 
+<div class="d-flex justify-content-end gap-3 mt-5">
+  <button type="submit" form="deal-form" class="btn btn-primary btn-lg">Сохранить</button>
+  <button type="submit" form="deal-form" name="save_and_exit" value="1" class="btn btn-outline-primary btn-lg">Сохранить и выйти</button>
+</div>
+
+{{ companies_data|json_script:"companies-data" }}
+{{ contacts_data|json_script:"deal-contacts-data" }}
 {{ recurrence_options|json_script:"deal-action-choices-data" }}
 
 <script>
@@ -198,64 +340,905 @@ const csrftoken = getCookie('csrftoken');
 </script>
 
 <script>
-document.getElementById("save-client-btn").addEventListener("click", function() {
-  let name = document.getElementById("new-client-name").value.trim();
-  let phone = document.getElementById("new-client-phone").value.trim();
-  let email = document.getElementById("new-client-email").value.trim();
-  let address = document.getElementById("new-client-address").value.trim();
+const dealId = {{ deal.pk }};
+const initialClientId = "{{ deal.client_id|default_if_none:'' }}";
+const companiesDataElement = document.getElementById("companies-data");
+const companiesById = {};
+if (companiesDataElement) {
+  try {
+    const parsedCompanies = JSON.parse(companiesDataElement.textContent || "[]");
+    parsedCompanies.forEach((company) => {
+      if (!company || company.id === undefined) {
+        return;
+      }
+      companiesById[String(company.id)] = company;
+    });
+  } catch (error) {
+    console.error("Не удалось разобрать данные компаний", error);
+  }
+}
 
-  if (!name) {
-    alert("Введите название клиента");
+const clientSelect = document.getElementById("client");
+const clientEditorFields = document.getElementById("client-editor-fields");
+const clientEditorEmpty = document.getElementById("client-editor-empty");
+const clientEditorAlert = document.getElementById("client-editor-alert");
+const clientEditorSaveButton = document.getElementById("client-editor-save");
+const clientTypeBadge = document.getElementById("client-editor-type");
+
+const clientInputs = {
+  name: document.getElementById("client-editor-name"),
+  phone: document.getElementById("client-editor-phone"),
+  email: document.getElementById("client-editor-email"),
+  inn: document.getElementById("client-editor-inn"),
+  website: document.getElementById("client-editor-website"),
+  address: document.getElementById("client-editor-address"),
+};
+
+const newClientFields = {
+  name: document.getElementById("new-client-name"),
+  phone: document.getElementById("new-client-phone"),
+  email: document.getElementById("new-client-email"),
+  inn: document.getElementById("new-client-inn"),
+  website: document.getElementById("new-client-website"),
+  address: document.getElementById("new-client-address"),
+};
+
+function showClientAlert(message, type = "danger") {
+  if (!clientEditorAlert) {
     return;
   }
+  if (!message) {
+    clientEditorAlert.className = "alert d-none";
+    clientEditorAlert.textContent = "";
+    return;
+  }
+  clientEditorAlert.className = `alert alert-${type}`;
+  clientEditorAlert.textContent = message;
+}
 
-  fetch("/companies/create/", {
+function describeClientErrors(errors) {
+  if (!errors) {
+    return null;
+  }
+  if (Array.isArray(errors)) {
+    return errors.join(" ");
+  }
+  const messages = [];
+  Object.keys(errors).forEach((key) => {
+    const fieldErrors = errors[key];
+    if (!fieldErrors) {
+      return;
+    }
+    if (Array.isArray(fieldErrors)) {
+      messages.push(fieldErrors.join(" "));
+    } else if (typeof fieldErrors === "object" && fieldErrors.message) {
+      messages.push(fieldErrors.message);
+    } else {
+      messages.push(String(fieldErrors));
+    }
+  });
+  return messages.join(" ");
+}
+
+function parseCostValue(value) {
+  if (value === undefined || value === null) {
+    return { number: null, decimals: 0, normalized: "" };
+  }
+  const cleaned = String(value).replace(/\s+/g, "").replace(/,/g, ".");
+  if (cleaned === "") {
+    return { number: null, decimals: 0, normalized: "" };
+  }
+  const match = cleaned.match(/^(\d*)(?:\.(\d*))?$/);
+  if (!match) {
+    return { number: null, decimals: 0, normalized: "" };
+  }
+  let integerPart = match[1] || "";
+  let decimalPart = (match[2] || "").slice(0, 2);
+  if (integerPart === "" && decimalPart === "") {
+    return { number: null, decimals: 0, normalized: "" };
+  }
+  if (integerPart === "") {
+    integerPart = "0";
+  }
+  const normalized = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+  const number = Number(normalized);
+  if (Number.isNaN(number)) {
+    return { number: null, decimals: 0, normalized: "" };
+  }
+  return { number, decimals: decimalPart.length, normalized };
+}
+
+function formatCostForDisplay(value) {
+  const { number, decimals } = parseCostValue(value);
+  if (number === null) {
+    return "";
+  }
+  return new Intl.NumberFormat("ru-RU", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(number);
+}
+
+function normalizeCostForSubmit(value) {
+  const { normalized } = parseCostValue(value);
+  return normalized;
+}
+
+function toggleClientEditor(hasClient) {
+  if (!clientEditorFields || !clientEditorEmpty) {
+    return;
+  }
+  if (hasClient) {
+    clientEditorFields.classList.remove("d-none");
+    clientEditorEmpty.hidden = true;
+    if (clientEditorSaveButton) {
+      clientEditorSaveButton.disabled = false;
+    }
+  } else {
+    clientEditorFields.classList.add("d-none");
+    clientEditorEmpty.hidden = false;
+    if (clientEditorSaveButton) {
+      clientEditorSaveButton.disabled = true;
+    }
+    if (clientTypeBadge) {
+      clientTypeBadge.hidden = true;
+    }
+    Object.values(clientInputs).forEach((input) => {
+      if (input) {
+        input.value = "";
+      }
+    });
+    showClientAlert(null);
+  }
+}
+
+function fillClientInputs(company) {
+  if (!company) {
+    toggleClientEditor(false);
+    return;
+  }
+  if (clientInputs.name) clientInputs.name.value = company.name || "";
+  if (clientInputs.phone) clientInputs.phone.value = company.phone || "";
+  if (clientInputs.email) clientInputs.email.value = company.email || "";
+  if (clientInputs.inn) clientInputs.inn.value = company.inn || "";
+  if (clientInputs.website) clientInputs.website.value = company.website || "";
+  if (clientInputs.address) clientInputs.address.value = company.address || "";
+  if (clientTypeBadge) {
+    if (company.type_display) {
+      clientTypeBadge.textContent = company.type_display;
+      clientTypeBadge.hidden = false;
+    } else {
+      clientTypeBadge.hidden = true;
+    }
+  }
+  toggleClientEditor(true);
+}
+
+function syncCompanyOption(company) {
+  if (!clientSelect || !company) {
+    return;
+  }
+  companiesById[String(company.id)] = company;
+  let option = clientSelect.querySelector(`option[value="${company.id}"]`);
+  if (!option) {
+    option = document.createElement("option");
+    option.value = company.id;
+    clientSelect.appendChild(option);
+  }
+  option.textContent = company.name;
+}
+
+function handleClientChange() {
+  if (!clientSelect) return;
+  const selectedId = clientSelect.value;
+  if (!selectedId) {
+    toggleClientEditor(false);
+    document.dispatchEvent(new CustomEvent("client:changed", { detail: { companyId: null } }));
+    return;
+  }
+  const company = companiesById[selectedId];
+  if (!company) {
+    toggleClientEditor(false);
+    document.dispatchEvent(new CustomEvent("client:changed", { detail: { companyId: null } }));
+    return;
+  }
+  fillClientInputs(company);
+  showClientAlert(null);
+  document.dispatchEvent(new CustomEvent("client:changed", { detail: { companyId: selectedId } }));
+}
+
+if (clientSelect) {
+  clientSelect.addEventListener("change", handleClientChange);
+  // Заполняем форму при первой загрузке
+  handleClientChange();
+}
+
+const saveNewClientButton = document.getElementById("save-client-btn");
+if (saveNewClientButton) {
+  saveNewClientButton.addEventListener("click", () => {
+    const name = newClientFields.name ? newClientFields.name.value.trim() : "";
+    if (!name) {
+      alert("Введите название клиента");
+      return;
+    }
+    const payload = new URLSearchParams();
+    payload.append("name", name);
+    if (newClientFields.phone) payload.append("phone", newClientFields.phone.value.trim());
+    if (newClientFields.email) payload.append("email", newClientFields.email.value.trim());
+    if (newClientFields.inn) payload.append("inn", newClientFields.inn.value.trim());
+    if (newClientFields.website) payload.append("website", newClientFields.website.value.trim());
+    if (newClientFields.address) payload.append("address", newClientFields.address.value.trim());
+
+    fetch("/companies/create/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: payload.toString(),
+    })
+      .then((response) => {
+        if (response.redirected) {
+          window.location.href = response.url;
+          return null;
+        }
+        return response
+          .json()
+          .catch(() => ({ error: "Не удалось обработать ответ сервера." }))
+          .then((data) => ({ ok: response.ok, data }));
+      })
+      .then((result) => {
+        if (!result) {
+          return;
+        }
+        const { ok, data } = result;
+        if (!ok || data.error) {
+          alert(data.error || "Не удалось создать клиента");
+          return;
+        }
+
+        syncCompanyOption(data);
+        if (clientSelect) {
+          clientSelect.value = String(data.id);
+          clientSelect.dispatchEvent(new Event("change"));
+        }
+
+        const modalElement = document.getElementById("addClientModal");
+        const modal = modalElement ? bootstrap.Modal.getInstance(modalElement) : null;
+        if (modal) {
+          modal.hide();
+        }
+
+        Object.values(newClientFields).forEach((input) => {
+          if (input) {
+            input.value = "";
+          }
+        });
+      })
+      .catch(() => {
+        alert("Не удалось создать клиента");
+      });
+  });
+}
+
+if (clientEditorSaveButton) {
+  clientEditorSaveButton.addEventListener("click", () => {
+    if (!clientSelect || !clientSelect.value) {
+      showClientAlert("Сначала выберите клиента.");
+      return;
+    }
+    const selectedId = clientSelect.value;
+    const payload = {
+      name: clientInputs.name ? clientInputs.name.value.trim() : "",
+      phone: clientInputs.phone ? clientInputs.phone.value.trim() : "",
+      email: clientInputs.email ? clientInputs.email.value.trim() : "",
+      inn: clientInputs.inn ? clientInputs.inn.value.trim() : "",
+      website: clientInputs.website ? clientInputs.website.value.trim() : "",
+      address: clientInputs.address ? clientInputs.address.value.trim() : "",
+    };
+
+    if (!payload.name) {
+      showClientAlert("Укажите название клиента.");
+      return;
+    }
+
+    fetch(`/companies/${selectedId}/update/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken,
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((response) =>
+        response
+          .json()
+          .catch(() => ({ error: "Не удалось обработать ответ сервера." }))
+          .then((data) => ({ ok: response.ok, data }))
+      )
+      .then(({ ok, data }) => {
+        if (!ok || data.error) {
+          const message = (data && (data.error || describeClientErrors(data.errors))) ||
+            "Не удалось сохранить клиента.";
+          showClientAlert(message);
+          return;
+        }
+        syncCompanyOption(data);
+        fillClientInputs(data);
+        showClientAlert("Данные клиента сохранены.", "success");
+      })
+      .catch(() => {
+        showClientAlert("Не удалось сохранить клиента.");
+      });
+  });
+}
+
+const dealForm = document.getElementById("deal-form");
+const costInput = document.getElementById("cost");
+
+if (costInput) {
+  const initialFormattedCost = formatCostForDisplay(costInput.value);
+  costInput.value = initialFormattedCost || "";
+
+  costInput.addEventListener("focus", () => {
+    const { normalized } = parseCostValue(costInput.value);
+    costInput.value = normalized;
+    if (costInput.value) {
+      const length = costInput.value.length;
+      requestAnimationFrame(() => {
+        try {
+          costInput.setSelectionRange(length, length);
+        } catch (error) {
+          // ignore selection errors
+        }
+      });
+    }
+  });
+
+  costInput.addEventListener("blur", () => {
+    const formatted = formatCostForDisplay(costInput.value);
+    costInput.value = formatted || "";
+  });
+
+  costInput.addEventListener("input", () => {
+    const cleaned = costInput.value.replace(/[^\d.,]/g, "");
+    if (cleaned !== costInput.value) {
+      costInput.value = cleaned;
+    }
+  });
+}
+
+if (dealForm && costInput) {
+  dealForm.addEventListener("submit", () => {
+    costInput.value = normalizeCostForSubmit(costInput.value);
+  });
+}
+</script>
+
+<script>
+const contactsList = document.getElementById("deal-contacts-list");
+const contactsAlert = document.getElementById("deal-contacts-alert");
+const addContactButton = document.getElementById("add-contact-btn");
+const addContactModalElement = document.getElementById("addContactModal");
+const addContactForm = document.getElementById("add-contact-form");
+const addContactErrors = document.getElementById("contact-form-errors");
+const createContactButton = document.getElementById("create-contact-btn");
+const contactsDataElement = document.getElementById("deal-contacts-data");
+const newContactFields = {
+  name: document.getElementById("new-contact-name"),
+  position: document.getElementById("new-contact-position"),
+  phone: document.getElementById("new-contact-phone"),
+  email: document.getElementById("new-contact-email"),
+  messengers: document.getElementById("new-contact-messengers"),
+};
+
+let cachedContacts = [];
+if (contactsDataElement) {
+  try {
+    const parsed = JSON.parse(contactsDataElement.textContent || "[]");
+    if (Array.isArray(parsed)) {
+      cachedContacts = parsed;
+    }
+  } catch (error) {
+    console.warn("Не удалось разобрать контакты сделки", error);
+  }
+}
+
+let contactsEnabled = Boolean(initialClientId);
+
+function showContactsMessage(message, type = "danger") {
+  if (!contactsAlert) return;
+  if (!message) {
+    contactsAlert.className = "alert d-none";
+    contactsAlert.textContent = "";
+    return;
+  }
+  contactsAlert.className = `alert alert-${type}`;
+  contactsAlert.textContent = message;
+}
+
+function removeNoContactsPlaceholder() {
+  const placeholder = document.getElementById("no-contacts-placeholder");
+  if (placeholder) {
+    placeholder.remove();
+  }
+}
+
+function ensureNoContactsPlaceholder() {
+  if (!contactsList) return;
+  if (!contactsList.querySelector(".contact-item") && !document.getElementById("no-contacts-placeholder")) {
+    const placeholder = document.createElement("li");
+    placeholder.className = "list-group-item text-muted";
+    placeholder.id = "no-contacts-placeholder";
+    placeholder.textContent = "Контактов пока нет";
+    contactsList.appendChild(placeholder);
+  }
+}
+
+function applyContactsState() {
+  if (addContactButton) {
+    addContactButton.disabled = !contactsEnabled;
+  }
+  if (!contactsList) return;
+  contactsList.querySelectorAll("input, textarea, .save-contact-btn, .contact-delete").forEach((element) => {
+    element.disabled = !contactsEnabled;
+  });
+}
+
+function setContactsEnabled(enabled, message) {
+  contactsEnabled = Boolean(enabled);
+  applyContactsState();
+  if (!contactsEnabled && message) {
+    showContactsMessage(message, "warning");
+  } else if (contactsEnabled && !message) {
+    showContactsMessage(null);
+  }
+}
+
+function getContactPayload(contactItem) {
+  const payload = { name: "", position: "", phone: "", email: "", messengers: "" };
+  if (!contactItem) {
+    return payload;
+  }
+  const nameInput = contactItem.querySelector(".contact-name");
+  const positionInput = contactItem.querySelector(".contact-position");
+  const phoneInput = contactItem.querySelector(".contact-phone");
+  const emailInput = contactItem.querySelector(".contact-email");
+  const messengersInput = contactItem.querySelector(".contact-messengers");
+  if (nameInput) payload.name = nameInput.value.trim();
+  if (positionInput) payload.position = positionInput.value.trim();
+  if (phoneInput) payload.phone = phoneInput.value.trim();
+  if (emailInput) payload.email = emailInput.value.trim();
+  if (messengersInput) payload.messengers = messengersInput.value.trim();
+  return payload;
+}
+
+function updateContactItem(contactItem, contact) {
+  if (!contactItem || !contact) return;
+  contactItem.dataset.contactId = contact.id;
+  const nameInput = contactItem.querySelector(".contact-name");
+  const positionInput = contactItem.querySelector(".contact-position");
+  const phoneInput = contactItem.querySelector(".contact-phone");
+  const emailInput = contactItem.querySelector(".contact-email");
+  const messengersInput = contactItem.querySelector(".contact-messengers");
+  if (nameInput) nameInput.value = contact.name || "";
+  if (positionInput) positionInput.value = contact.position || "";
+  if (phoneInput) phoneInput.value = contact.phone || "";
+  if (emailInput) emailInput.value = contact.email || "";
+  if (messengersInput) messengersInput.value = contact.messengers || "";
+  const saveButton = contactItem.querySelector(".save-contact-btn");
+  const deleteButton = contactItem.querySelector(".contact-delete");
+  if (saveButton) saveButton.dataset.contactId = contact.id;
+  if (deleteButton) deleteButton.dataset.contactId = contact.id;
+}
+
+function renderContactItem(contact) {
+  const li = document.createElement("li");
+  li.className = "list-group-item contact-item";
+  li.dataset.contactId = contact.id;
+
+  const firstRow = document.createElement("div");
+  firstRow.className = "row g-2";
+
+  const nameCol = document.createElement("div");
+  nameCol.className = "col-md-4";
+  const nameLabel = document.createElement("label");
+  nameLabel.className = "form-label small mb-1";
+  nameLabel.textContent = "Имя";
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "form-control contact-name";
+  nameInput.value = contact.name || "";
+  nameCol.appendChild(nameLabel);
+  nameCol.appendChild(nameInput);
+
+  const positionCol = document.createElement("div");
+  positionCol.className = "col-md-4";
+  const positionLabel = document.createElement("label");
+  positionLabel.className = "form-label small mb-1";
+  positionLabel.textContent = "Должность";
+  const positionInput = document.createElement("input");
+  positionInput.type = "text";
+  positionInput.className = "form-control contact-position";
+  positionInput.value = contact.position || "";
+  positionCol.appendChild(positionLabel);
+  positionCol.appendChild(positionInput);
+
+  const phoneCol = document.createElement("div");
+  phoneCol.className = "col-md-4";
+  const phoneLabel = document.createElement("label");
+  phoneLabel.className = "form-label small mb-1";
+  phoneLabel.textContent = "Телефон";
+  const phoneInput = document.createElement("input");
+  phoneInput.type = "text";
+  phoneInput.className = "form-control contact-phone";
+  phoneInput.value = contact.phone || "";
+  phoneCol.appendChild(phoneLabel);
+  phoneCol.appendChild(phoneInput);
+
+  firstRow.appendChild(nameCol);
+  firstRow.appendChild(positionCol);
+  firstRow.appendChild(phoneCol);
+  li.appendChild(firstRow);
+
+  const secondRow = document.createElement("div");
+  secondRow.className = "row g-2 mt-2";
+
+  const emailCol = document.createElement("div");
+  emailCol.className = "col-md-6";
+  const emailLabel = document.createElement("label");
+  emailLabel.className = "form-label small mb-1";
+  emailLabel.textContent = "Email";
+  const emailInput = document.createElement("input");
+  emailInput.type = "email";
+  emailInput.className = "form-control contact-email";
+  emailInput.value = contact.email || "";
+  emailCol.appendChild(emailLabel);
+  emailCol.appendChild(emailInput);
+
+  const messengersCol = document.createElement("div");
+  messengersCol.className = "col-md-6";
+  const messengersLabel = document.createElement("label");
+  messengersLabel.className = "form-label small mb-1";
+  messengersLabel.textContent = "Телеграм/мессенджеры";
+  const messengersInput = document.createElement("textarea");
+  messengersInput.className = "form-control contact-messengers";
+  messengersInput.rows = 2;
+  messengersInput.value = contact.messengers || "";
+  messengersCol.appendChild(messengersLabel);
+  messengersCol.appendChild(messengersInput);
+
+  secondRow.appendChild(emailCol);
+  secondRow.appendChild(messengersCol);
+  li.appendChild(secondRow);
+
+  const actionsWrapper = document.createElement("div");
+  actionsWrapper.className = "d-flex justify-content-end gap-2 mt-3";
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "btn btn-outline-danger btn-sm contact-delete";
+  deleteButton.dataset.contactId = contact.id;
+  deleteButton.textContent = "Удалить";
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "btn btn-sm btn-primary save-contact-btn";
+  saveButton.dataset.contactId = contact.id;
+  saveButton.textContent = "Сохранить";
+  actionsWrapper.appendChild(deleteButton);
+  actionsWrapper.appendChild(saveButton);
+
+  li.appendChild(actionsWrapper);
+
+  return li;
+}
+
+function attachContactEvents(contactItem) {
+  if (!contactItem) return;
+  const saveButton = contactItem.querySelector(".save-contact-btn");
+  if (saveButton) {
+    saveButton.addEventListener("click", () => {
+      saveContact(contactItem);
+    });
+  }
+  const deleteButton = contactItem.querySelector(".contact-delete");
+  if (deleteButton) {
+    deleteButton.addEventListener("click", () => {
+      deleteContact(contactItem);
+    });
+  }
+}
+
+function upsertCachedContact(contact) {
+  if (!contact || contact.id === undefined) return;
+  const id = Number(contact.id);
+  const index = cachedContacts.findIndex((item) => Number(item.id) === id);
+  if (index === -1) {
+    cachedContacts.push(contact);
+  } else {
+    cachedContacts[index] = contact;
+  }
+}
+
+function removeCachedContact(contactId) {
+  const id = Number(contactId);
+  cachedContacts = cachedContacts.filter((item) => Number(item.id) !== id);
+}
+
+function saveContact(contactItem) {
+  if (!contactsEnabled) {
+    showContactsMessage("Сохраните сделку, чтобы редактировать контакты.", "warning");
+    return;
+  }
+  const contactId = contactItem.dataset.contactId;
+  if (!contactId) {
+    showContactsMessage("Не удалось определить контакт.");
+    return;
+  }
+  const payload = getContactPayload(contactItem);
+  if (!payload.name) {
+    showContactsMessage("Укажите имя контакта.");
+    return;
+  }
+  fetch(`/deals/${dealId}/contacts/${contactId}/update/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken,
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+    .then((response) =>
+      response
+        .json()
+        .catch(() => ({ error: "Не удалось обработать ответ сервера." }))
+        .then((data) => ({ ok: response.ok, data }))
+    )
+    .then(({ ok, data }) => {
+      if (!ok || data.error) {
+        const message = (data && (data.error || describeClientErrors(data.errors))) || "Не удалось сохранить контакт.";
+        showContactsMessage(message);
+        return;
+      }
+      if (!data.contact) {
+        showContactsMessage("Неизвестный ответ сервера.");
+        return;
+      }
+      updateContactItem(contactItem, data.contact);
+      upsertCachedContact(data.contact);
+      showContactsMessage("Контакт сохранён.", "success");
+    })
+    .catch(() => {
+      showContactsMessage("Не удалось сохранить контакт.");
+    });
+}
+
+function deleteContact(contactItem) {
+  if (!contactsEnabled) {
+    showContactsMessage("Сохраните сделку, чтобы редактировать контакты.", "warning");
+    return;
+  }
+  const contactId = contactItem ? contactItem.dataset.contactId : null;
+  if (!contactId) {
+    showContactsMessage("Не удалось определить контакт.");
+    return;
+  }
+  if (!confirm("Удалить этот контакт?")) {
+    return;
+  }
+  fetch(`/deals/${dealId}/contacts/${contactId}/delete/`, {
     method: "POST",
     headers: {
       "X-CSRFToken": csrftoken,
-      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
     },
-    body: "name=" + encodeURIComponent(name) +
-          "&phone=" + encodeURIComponent(phone) +
-          "&email=" + encodeURIComponent(email) +
-          "&address=" + encodeURIComponent(address)
   })
-  .then(response => {
-    if (response.redirected) {
-      window.location.href = response.url;
-      return null;
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (!data) {
-      return;
-    }
-    if (data.error) {
-      alert(data.error);
-    } else {
-      let select = document.getElementById("client");
-      let option = document.createElement("option");
-      option.value = data.id;
-      option.textContent = data.name;
-      option.selected = true;
-      select.appendChild(option);
+    .then((response) =>
+      response
+        .json()
+        .catch(() => ({ error: "Не удалось обработать ответ сервера." }))
+        .then((data) => ({ ok: response.ok, data }))
+    )
+    .then(({ ok, data }) => {
+      if (!ok || data.error) {
+        const message = (data && (data.error || describeClientErrors(data.errors))) || "Не удалось удалить контакт.";
+        showContactsMessage(message);
+        return;
+      }
+      removeCachedContact(contactId);
+      if (contactItem) {
+        contactItem.remove();
+      }
+      ensureNoContactsPlaceholder();
+      showContactsMessage("Контакт удалён.", "success");
+    })
+    .catch(() => {
+      showContactsMessage("Не удалось удалить контакт.");
+    });
+}
 
-      let modal = bootstrap.Modal.getInstance(document.getElementById("addClientModal"));
-      modal.hide();
-
-      document.getElementById("new-client-name").value = "";
-      document.getElementById("new-client-phone").value = "";
-      document.getElementById("new-client-email").value = "";
-      document.getElementById("new-client-address").value = "";
+function resetNewContactForm() {
+  Object.values(newContactFields).forEach((input) => {
+    if (input) {
+      input.value = "";
     }
   });
+  if (addContactErrors) {
+    addContactErrors.classList.add("d-none");
+    addContactErrors.textContent = "";
+  }
+}
+
+function renderContactsList(contacts) {
+  if (!contactsList) return;
+  contactsList.innerHTML = "";
+  if (!Array.isArray(contacts) || !contacts.length) {
+    const placeholder = document.createElement("li");
+    placeholder.className = "list-group-item text-muted";
+    placeholder.id = "no-contacts-placeholder";
+    placeholder.textContent = "Контактов пока нет";
+    contactsList.appendChild(placeholder);
+    applyContactsState();
+    return;
+  }
+  contacts.forEach((contact) => {
+    const item = renderContactItem(contact);
+    contactsList.appendChild(item);
+    attachContactEvents(item);
+  });
+  applyContactsState();
+}
+
+function refreshContactsFromServer(companyId) {
+  if (!companyId) {
+    cachedContacts = [];
+    renderContactsList(cachedContacts);
+    return;
+  }
+  fetch(`/companies/${companyId}/contacts/`)
+    .then((response) =>
+      response
+        .json()
+        .catch(() => ({ contacts: [] }))
+        .then((data) => ({ ok: response.ok, data }))
+    )
+    .then(({ ok, data }) => {
+      if (!ok) {
+        showContactsMessage((data && data.error) || "Не удалось загрузить контакты.");
+        return;
+      }
+      cachedContacts = Array.isArray(data.contacts) ? data.contacts : [];
+      renderContactsList(cachedContacts);
+    })
+    .catch(() => {
+      showContactsMessage("Не удалось загрузить контакты.");
+    });
+}
+
+if (contactsList) {
+  contactsList.querySelectorAll(".contact-item").forEach((item) => {
+    attachContactEvents(item);
+  });
+  applyContactsState();
+}
+
+if (createContactButton) {
+  createContactButton.addEventListener("click", () => {
+    if (!contactsEnabled) {
+      showContactsMessage("Сохраните сделку, чтобы добавить контакт.", "warning");
+      return;
+    }
+    const payload = {
+      name: newContactFields.name ? newContactFields.name.value.trim() : "",
+      position: newContactFields.position ? newContactFields.position.value.trim() : "",
+      phone: newContactFields.phone ? newContactFields.phone.value.trim() : "",
+      email: newContactFields.email ? newContactFields.email.value.trim() : "",
+      messengers: newContactFields.messengers ? newContactFields.messengers.value.trim() : "",
+    };
+    if (!payload.name) {
+      if (addContactErrors) {
+        addContactErrors.textContent = "Укажите имя контакта.";
+        addContactErrors.classList.remove("d-none");
+      }
+      return;
+    }
+    fetch(`/deals/${dealId}/contacts/create/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken,
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((response) =>
+        response
+          .json()
+          .catch(() => ({ error: "Не удалось обработать ответ сервера." }))
+          .then((data) => ({ ok: response.ok, data }))
+      )
+      .then(({ ok, data }) => {
+        if (!ok || data.error) {
+          const message = (data && (data.error || describeClientErrors(data.errors))) || "Не удалось создать контакт.";
+          if (addContactErrors) {
+            addContactErrors.textContent = message;
+            addContactErrors.classList.remove("d-none");
+          } else {
+            showContactsMessage(message);
+          }
+          return;
+        }
+        if (!data.contact) {
+          if (addContactErrors) {
+            addContactErrors.textContent = "Неизвестный ответ сервера.";
+            addContactErrors.classList.remove("d-none");
+          }
+          return;
+        }
+        removeNoContactsPlaceholder();
+        const item = renderContactItem(data.contact);
+        contactsList.appendChild(item);
+        attachContactEvents(item);
+        applyContactsState();
+        upsertCachedContact(data.contact);
+        if (addContactModalElement) {
+          const modal = bootstrap.Modal.getInstance(addContactModalElement);
+          if (modal) {
+            modal.hide();
+          }
+        }
+        resetNewContactForm();
+        showContactsMessage("Контакт добавлен.", "success");
+      })
+      .catch(() => {
+        if (addContactErrors) {
+          addContactErrors.textContent = "Не удалось создать контакт.";
+          addContactErrors.classList.remove("d-none");
+        } else {
+          showContactsMessage("Не удалось создать контакт.");
+        }
+      });
+  });
+}
+
+if (addContactModalElement) {
+  addContactModalElement.addEventListener("hidden.bs.modal", () => {
+    resetNewContactForm();
+  });
+}
+
+document.addEventListener("client:changed", (event) => {
+  const companyId = event.detail ? event.detail.companyId : null;
+  if (!companyId) {
+    cachedContacts = [];
+    renderContactsList(cachedContacts);
+    setContactsEnabled(false, "Сначала выберите клиента.");
+    return;
+  }
+  if (initialClientId && companyId === initialClientId) {
+    setContactsEnabled(true);
+    refreshContactsFromServer(companyId);
+    return;
+  }
+  cachedContacts = [];
+  renderContactsList(cachedContacts);
+  setContactsEnabled(false, "Сохраните сделку, чтобы редактировать контакты выбранного клиента.");
 });
+
+if (contactsEnabled) {
+  setContactsEnabled(true);
+} else {
+  const message = initialClientId
+    ? "Сохраните сделку, чтобы редактировать контакты выбранного клиента."
+    : "Сначала выберите клиента, чтобы работать с контактами.";
+  setContactsEnabled(false, message);
+}
+ensureNoContactsPlaceholder();
 </script>
 
 <script>
 const recurrenceOptions = JSON.parse(document.getElementById("deal-action-choices-data").textContent);
-const dealId = {{ deal.pk }};
 const actionsList = document.getElementById("deal-actions-list");
 const actionsAlert = document.getElementById("deal-actions-alert");
 const newActionModalElement = document.getElementById("addActionModal");
