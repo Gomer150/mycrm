@@ -19,7 +19,7 @@ class DealCompanyInline(admin.TabularInline):
 
 @admin.register(Deal)
 class DealAdmin(admin.ModelAdmin):
-    list_display = ("title", "stage", "owner", "created_at", "updated_at")
+    list_display = ("title", "stage", "cost", "owner", "created_at", "updated_at")
     inlines = [DealCompanyInline]
 
 @admin.register(Document)

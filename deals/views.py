@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -101,6 +102,14 @@ def deal_edit(request, pk):
         deal.title = request.POST.get("title")
         deal.stage_id = request.POST.get("stage_id")
         deal.client_id = request.POST.get("client_id") or None
+        cost_raw = request.POST.get("cost")
+        if cost_raw in ("", None):
+            deal.cost = None
+        else:
+            try:
+                deal.cost = Decimal(cost_raw)
+            except (InvalidOperation, TypeError):
+                pass
         deal.save()
         return redirect("deal_edit", pk=deal.pk)
 

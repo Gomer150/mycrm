@@ -23,7 +23,7 @@ class DealForm(forms.ModelForm):
 
     class Meta:
         model = Deal
-        fields = ["title", "stage", "owner", "companies", "contacts"]
+        fields = ["title", "stage", "owner", "cost", "companies", "contacts"]
 
 
 class DealActionForm(forms.ModelForm):

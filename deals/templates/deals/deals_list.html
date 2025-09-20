@@ -2,17 +2,18 @@
 {% block content %}
 <h1>Сделки</h1>
 <table class="table table-striped">
-  <thead><tr><th>Название</th><th>Этап</th><th>Владелец</th><th>Обновлено</th></tr></thead>
+  <thead><tr><th>Название</th><th>Этап</th><th>Стоимость</th><th>Владелец</th><th>Обновлено</th></tr></thead>
   <tbody>
     {% for deal in deals %}
     <tr>
       <td><a href="{% url 'deal_edit' deal.pk %}">{{ deal.title }}</a></td>
       <td>{{ deal.stage }}</td>
+      <td>{% if deal.cost is not None %}{{ deal.cost }} ₽{% else %}—{% endif %}</td>
       <td>{{ deal.owner.username }}</td>
       <td>{{ deal.updated_at }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="4">Сделок нет</td></tr>
+    <tr><td colspan="5">Сделок нет</td></tr>
     {% endfor %}
   </tbody>
 </table>
@@ -43,7 +44,8 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
     let tr = document.createElement("tr");
     tr.innerHTML = `
       <td><a href="/deals/${data.id}/edit/">${data.name}</a></td>
-      <td>${data.stage}</td>
+      <td>${data.stage || ""}</td>
+      <td>—</td>
       <td>{{ request.user.username }}</td>
       <td>${data.created_at}</td>
     `;
@@ -53,4 +55,3 @@ document.getElementById("add-deal-btn").addEventListener("click", function() {
 </script>
 
 {% endblock %}
-

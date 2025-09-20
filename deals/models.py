@@ -59,6 +59,13 @@ class Deal(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     client = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, blank=True, related_name="client_deals")
+    cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Стоимость сделки",
+    )
 
     def save(self, *args, **kwargs):
         # Автогенерация имени сделки
