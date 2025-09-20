@@ -107,7 +107,8 @@ def deal_edit(request, pk):
             deal.cost = None
         else:
             try:
-                deal.cost = Decimal(cost_raw)
+                normalized_cost = str(cost_raw).replace(",", ".")
+                deal.cost = Decimal(normalized_cost)
             except (InvalidOperation, TypeError):
                 pass
         deal.save()
