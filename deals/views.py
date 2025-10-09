@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, time
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -14,7 +15,15 @@ from .forms import DealActionForm, DealForm, DocumentUploadForm
 from .models import Company, Contact, Deal, DealAction, Document, Stage
 
 
-ACTION_FORM_FIELDS = {"description", "remind_at", "recurrence", "custom_interval_days"}
+ACTION_FORM_FIELDS = {
+    "description",
+    "status",
+    "remind_at",
+    "notify_before_value",
+    "notify_before_unit",
+    "recurrence",
+    "custom_interval_days",
+}
 
 
 def _get_action_form_data(request):
@@ -40,8 +49,23 @@ def _get_action_form_data(request):
 
     if "recurrence" not in data:
         data["recurrence"] = DealAction.Recurrence.NONE
+    if "notify_before_unit" not in data and data.get("notify_before_value"):
+        data["notify_before_unit"] = DealAction.NotifyUnit.MINUTES
 
     return data
+
+
+def _mark_overdue_actions(queryset):
+    now = timezone.now()
+    queryset.filter(
+        starts_at__lt=now,
+    ).exclude(
+        status__in=[
+            DealAction.Status.OVERDUE,
+            DealAction.Status.COMPLETED,
+            DealAction.Status.CANCELLED,
+        ]
+    ).update(status=DealAction.Status.OVERDUE)
 
 
 def _serialize_action(action):
@@ -54,9 +78,16 @@ def _serialize_action(action):
         "remind_at": None,
         "remind_at_display": "",
         "remind_at_value": "",
+        "status": action.status,
+        "status_display": action.get_status_display(),
         "recurrence": action.recurrence,
         "recurrence_display": action.get_recurrence_display(),
         "custom_interval_days": action.custom_interval_days,
+        "notify_before_value": action.notify_before_value,
+        "notify_before_unit": action.notify_before_unit,
+        "notify_before_unit_display": action.get_notify_before_unit_display()
+        if action.notify_before_value is not None
+        else "",
     }
 
     if action.remind_at:
@@ -105,6 +136,7 @@ def deal_edit(request, pk):
     stages = Stage.objects.all()
     companies = Company.objects.all()  # 👈 добавляем список клиентов
     contacts = Contact.objects.filter(company=deal.client).order_by("name") if deal.client else Contact.objects.none()
+    _mark_overdue_actions(deal.actions.all())
     actions = deal.actions.all()
     action_form = DealActionForm()
     recurrence_choices = DealAction.Recurrence.choices
@@ -146,6 +178,10 @@ def deal_edit(request, pk):
     ]
 
     contacts_data = [_serialize_contact(contact) for contact in contacts]
+    status_choices = DealAction.Status.choices
+    status_options = [{"value": value, "label": label} for value, label in status_choices]
+    notify_units_choices = DealAction.NotifyUnit.choices
+    notify_units_options = [{"value": value, "label": label} for value, label in notify_units_choices]
 
     return render(
         request,
@@ -161,6 +197,11 @@ def deal_edit(request, pk):
             "action_form": action_form,
             "recurrence_choices": recurrence_choices,
             "recurrence_options": recurrence_options,
+            "status_choices": status_choices,
+            "status_options": status_options,
+            "notify_units_choices": notify_units_choices,
+            "notify_units_options": notify_units_options,
+            "default_notify_unit": DealAction.NotifyUnit.MINUTES,
         },
     )
 
@@ -425,9 +466,43 @@ def deal_action_delete(request, pk, action_id):
 def deals_list(request):
     if request.user.is_superuser:
         deals = Deal.objects.all().order_by("-updated_at")
+        actions_scope = DealAction.objects.all()
     else:
         deals = Deal.objects.filter(owner=request.user).order_by("-updated_at")
-    return render(request, "deals/deals_list.html", {"deals": deals})
+        actions_scope = DealAction.objects.filter(deal__owner=request.user)
+
+    today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
+
+    _mark_overdue_actions(actions_scope)
+
+    todays_actions = (
+        actions_scope
+        .filter(starts_at__range=(day_start, day_end))
+        .exclude(status__in=[DealAction.Status.CANCELLED, DealAction.Status.COMPLETED])
+        .select_related("deal", "deal__owner")
+        .order_by("starts_at")
+    )
+
+    status_badge_map = {
+        DealAction.Status.SCHEDULED: "text-bg-primary",
+        DealAction.Status.IN_PROGRESS: "text-bg-warning",
+        DealAction.Status.COMPLETED: "text-bg-success",
+        DealAction.Status.OVERDUE: "text-bg-danger",
+        DealAction.Status.CANCELLED: "text-bg-secondary",
+    }
+
+    for action in todays_actions:
+        action.status_badge_class = status_badge_map.get(action.status, "text-bg-secondary")
+
+    context = {
+        "deals": deals,
+        "todays_actions": todays_actions,
+        "today_date": today,
+    }
+    return render(request, "deals/deals_list.html", context)
 
 @login_required
 def deal_detail(request, pk):

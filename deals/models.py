@@ -122,6 +122,13 @@ class DealAction(models.Model):
         YEARLY = "yearly", "Ежегодно"
         CUSTOM = "custom", "Пользовательский интервал"
 
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", "Запланировано"
+        IN_PROGRESS = "in_progress", "В процессе выполнения"
+        COMPLETED = "completed", "Выполнено"
+        OVERDUE = "overdue", "Просрочено"
+        CANCELLED = "cancelled", "Отменено"
+
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name="actions")
     description = models.TextField(verbose_name="Описание")
     starts_at = models.DateTimeField(default=timezone.now, editable=False, verbose_name="Начало")
@@ -137,6 +144,30 @@ class DealAction(models.Model):
         null=True,
         verbose_name="Интервал (дни)",
         help_text="Используется только для пользовательской периодичности.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SCHEDULED,
+        verbose_name="Статус",
+    )
+    class NotifyUnit(models.TextChoices):
+        MINUTES = "minutes", "минут"
+        HOURS = "hours", "часов"
+        DAYS = "days", "дней"
+
+    notify_before_value = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Оповестить за",
+        help_text="Число единиц времени до начала действия.",
+    )
+    notify_before_unit = models.CharField(
+        max_length=16,
+        choices=NotifyUnit.choices,
+        default=NotifyUnit.MINUTES,
+        verbose_name="Единица оповещения",
+        blank=True,
     )
 
     class Meta:

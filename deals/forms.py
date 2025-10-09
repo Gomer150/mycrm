@@ -34,11 +34,41 @@ class DealActionForm(forms.ModelForm):
         label="Напомнить",
     )
 
+    notify_before_value = forms.IntegerField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control action-notify-before",
+                "min": 0,
+                "placeholder": "Например, 30",
+            }
+        ),
+        label="Оповестить за",
+        help_text="0 — без дополнительного оповещения",
+    )
+    notify_before_unit = forms.ChoiceField(
+        required=False,
+        choices=DealAction.NotifyUnit.choices,
+        widget=forms.Select(attrs={"class": "form-select action-notify-unit"}),
+        label="Единица",
+        initial=DealAction.NotifyUnit.MINUTES,
+    )
+
     class Meta:
         model = DealAction
-        fields = ["description", "remind_at", "recurrence", "custom_interval_days"]
+        fields = [
+            "description",
+            "status",
+            "remind_at",
+            "notify_before_value",
+            "notify_before_unit",
+            "recurrence",
+            "custom_interval_days",
+        ]
         widgets = {
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "status": forms.Select(attrs={"class": "form-select action-status"}),
             "recurrence": forms.Select(attrs={"class": "form-select"}),
             "custom_interval_days": forms.NumberInput(
                 attrs={"class": "form-control action-custom-interval", "min": 1}
@@ -46,6 +76,7 @@ class DealActionForm(forms.ModelForm):
         }
         labels = {
             "description": "Описание",
+            "status": "Статус",
             "recurrence": "Периодичность",
             "custom_interval_days": "Интервал (дни)",
         }
@@ -60,5 +91,15 @@ class DealActionForm(forms.ModelForm):
                 self.add_error("custom_interval_days", "Укажите интервал в днях")
         else:
             cleaned_data["custom_interval_days"] = None
+
+        notify_value = cleaned_data.get("notify_before_value")
+        if notify_value in (None, "", 0):
+            cleaned_data["notify_before_value"] = None
+            cleaned_data["notify_before_unit"] = DealAction.NotifyUnit.MINUTES
+        else:
+            cleaned_data["notify_before_unit"] = (
+                cleaned_data.get("notify_before_unit")
+                or DealAction.NotifyUnit.MINUTES
+            )
 
         return cleaned_data

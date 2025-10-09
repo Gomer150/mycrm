@@ -4,6 +4,431 @@
 
 <h2>Редактирование сделки</h2>
 
+<style>
+  :root {
+    --deal-section-bg: #f7f9fc;
+    --deal-section-border: rgba(13, 110, 253, 0.12);
+    --deal-section-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    --deal-section-heading-border: rgba(15, 23, 42, 0.06);
+    --deal-section-item-bg: #ffffff;
+    --deal-section-item-border: rgba(15, 23, 42, 0.08);
+    --deal-section-item-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  }
+
+  [data-bs-theme="dark"] {
+    --deal-section-bg: rgba(13, 110, 253, 0.12);
+    --deal-section-border: rgba(13, 110, 253, 0.35);
+    --deal-section-shadow: 0 22px 60px rgba(6, 11, 20, 0.6);
+    --deal-section-heading-border: rgba(148, 163, 184, 0.18);
+    --deal-section-item-bg: rgba(21, 30, 48, 0.92);
+    --deal-section-item-border: rgba(96, 165, 250, 0.25);
+    --deal-section-item-shadow: 0 18px 45px rgba(3, 8, 18, 0.55);
+  }
+
+  .deal-section {
+    position: relative;
+    margin-top: 2.25rem;
+    padding: 2rem;
+    border-radius: 1.1rem;
+    border: 1px solid var(--deal-section-border);
+    background: var(--deal-section-bg);
+    box-shadow: var(--deal-section-shadow);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  .deal-section::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    opacity: 0.4;
+  }
+
+  .deal-section:first-of-type {
+    margin-top: 1.5rem;
+  }
+
+  .deal-section .section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--deal-section-heading-border);
+  }
+
+  .deal-section .section-heading h4 {
+    margin-bottom: 0;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .deal-section .section-heading .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .deal-section .section-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .action-view-toggle .btn {
+    min-width: 4.75rem;
+    font-weight: 600;
+  }
+
+  .action-view-toggle .btn-check:checked + .btn {
+    background-color: rgba(13, 110, 253, 0.16);
+    color: var(--bs-primary);
+    border-color: rgba(13, 110, 253, 0.5);
+  }
+
+  [data-bs-theme="dark"] .action-view-toggle .btn-check:checked + .btn {
+    background-color: rgba(13, 110, 253, 0.24);
+    color: var(--bs-body-color);
+  }
+
+  .deal-section .section-subtitle {
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color);
+    margin: 0.35rem 0 0;
+  }
+
+  .deal-section .form-label {
+    font-weight: 600;
+  }
+
+  .deal-section .list-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .deal-section .list-group-item {
+    border: 1px solid var(--deal-section-item-border);
+    border-radius: 0.9rem;
+    background: var(--deal-section-item-bg);
+    padding: 1.35rem 1.5rem;
+    box-shadow: var(--deal-section-item-shadow);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .deal-section .list-group-item:hover,
+  .deal-section .list-group-item:focus-within {
+    border-color: rgba(13, 110, 253, 0.55);
+    box-shadow: 0 16px 38px rgba(13, 110, 253, 0.18);
+    transform: translateY(-2px);
+  }
+
+  .deal-section .list-group-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .deal-section-client {
+    background: #eef5ff;
+    border-color: rgba(63, 131, 248, 0.22);
+  }
+
+  .deal-section-client .list-group-item,
+  .deal-section-client #client-editor-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(63, 131, 248, 0.24);
+  }
+
+  [data-bs-theme="dark"] .deal-section-client {
+    background: rgba(63, 131, 248, 0.18);
+    border-color: rgba(99, 179, 255, 0.45);
+  }
+
+  [data-bs-theme="dark"] .deal-section-client .list-group-item,
+  [data-bs-theme="dark"] .deal-section-client #client-editor-card {
+    background: rgba(18, 27, 46, 0.85);
+    border-color: rgba(99, 179, 255, 0.35);
+  }
+
+  .deal-section-contacts {
+    background: #f4efff;
+    border-color: rgba(138, 109, 248, 0.22);
+  }
+
+  .deal-section-contacts .list-group-item {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(138, 109, 248, 0.24);
+  }
+
+  [data-bs-theme="dark"] .deal-section-contacts {
+    background: rgba(138, 109, 248, 0.2);
+    border-color: rgba(168, 145, 255, 0.5);
+  }
+
+  [data-bs-theme="dark"] .deal-section-contacts .list-group-item {
+    background: rgba(23, 19, 39, 0.88);
+    border-color: rgba(168, 145, 255, 0.35);
+  }
+
+  .deal-section-actions {
+    background: #f1fff7;
+    border-color: rgba(25, 135, 84, 0.22);
+  }
+
+  .deal-section-actions .list-group-item {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(25, 135, 84, 0.24);
+  }
+
+  [data-bs-theme="dark"] .deal-section-actions {
+    background: rgba(25, 135, 84, 0.2);
+    border-color: rgba(102, 212, 170, 0.5);
+  }
+
+  [data-bs-theme="dark"] .deal-section-actions .list-group-item {
+    background: rgba(16, 32, 27, 0.88);
+    border-color: rgba(102, 212, 170, 0.35);
+  }
+
+  .deal-section-documents {
+    background: #fff6ed;
+    border-color: rgba(255, 159, 67, 0.25);
+  }
+
+  .deal-section-documents .list-group-item {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 159, 67, 0.24);
+  }
+
+  [data-bs-theme="dark"] .deal-section-documents {
+    background: rgba(255, 159, 67, 0.22);
+    border-color: rgba(255, 189, 116, 0.5);
+  }
+
+  [data-bs-theme="dark"] .deal-section-documents .list-group-item {
+    background: rgba(36, 26, 15, 0.88);
+    border-color: rgba(255, 189, 116, 0.35);
+  }
+
+  .deal-documents-list {
+    margin-bottom: 1.5rem;
+  }
+
+  #deal-actions-list .action-compact-view {
+    display: none;
+  }
+
+  #deal-actions-list.compact-view .action-detailed-view {
+    display: none;
+  }
+
+  #deal-actions-list.compact-view .action-compact-view {
+    display: flex;
+  }
+
+  .action-compact-view {
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .action-compact-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .action-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: rgba(13, 110, 253, 0.16);
+    color: var(--bs-primary);
+  }
+
+  .action-status-pill[data-status="completed"] {
+    background: rgba(25, 135, 84, 0.18);
+    color: #198754;
+  }
+
+  .action-status-pill[data-status="overdue"] {
+    background: rgba(220, 53, 69, 0.18);
+    color: #dc3545;
+  }
+
+  .action-status-pill[data-status="cancelled"] {
+    background: rgba(108, 117, 125, 0.18);
+    color: #6c757d;
+  }
+
+  [data-bs-theme="dark"] .action-status-pill {
+    background: rgba(118, 169, 250, 0.22);
+    color: #bbd3ff;
+  }
+
+  [data-bs-theme="dark"] .action-status-pill[data-status="completed"] {
+    background: rgba(25, 135, 84, 0.28);
+    color: #69f0ae;
+  }
+
+  [data-bs-theme="dark"] .action-status-pill[data-status="overdue"] {
+    background: rgba(220, 53, 69, 0.32);
+    color: #ff9aa2;
+  }
+
+  [data-bs-theme="dark"] .action-status-pill[data-status="cancelled"] {
+    background: rgba(148, 163, 184, 0.32);
+    color: #d1d5db;
+  }
+
+  .action-compact-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .action-compact-description {
+    font-weight: 600;
+    color: var(--bs-body-color);
+    word-break: break-word;
+  }
+
+  .action-compact-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .action-compact-controls .btn {
+    min-width: 7rem;
+  }
+
+  #client-selector {
+    border-radius: 0.75rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  }
+
+  [data-bs-theme="dark"] #client-selector {
+    box-shadow: 0 18px 40px rgba(6, 11, 20, 0.5);
+  }
+
+  #client-dropdown {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--deal-section-item-border);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.15);
+  }
+
+  [data-bs-theme="dark"] #client-dropdown {
+    box-shadow: 0 24px 50px rgba(6, 11, 20, 0.6);
+  }
+
+  #client-editor-card {
+    border: 1px solid var(--deal-section-item-border);
+    border-radius: 0.9rem;
+    background: var(--deal-section-item-bg);
+    box-shadow: var(--deal-section-item-shadow);
+    margin-top: 1.75rem;
+  }
+
+  #client-editor-card .card-header {
+    border-bottom: 1px solid var(--deal-section-heading-border);
+    background: transparent;
+    padding: 1.25rem 1.5rem;
+  }
+
+  #client-editor-card .card-body {
+    padding: 1.5rem;
+  }
+
+  #client-editor-card .badge {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  #client-editor-alert {
+    border-radius: 0.75rem;
+  }
+
+  .deal-section .btn-outline-primary,
+  .deal-section .btn-outline-secondary {
+    border-width: 1.5px;
+  }
+
+  .deal-section .btn-group,
+  .deal-section .section-heading .btn + .btn {
+    gap: 0.5rem;
+  }
+
+  .deal-section .btn {
+    font-weight: 600;
+  }
+
+  .deal-section .save-action-btn,
+  .deal-section .save-contact-btn {
+    min-width: 7.5rem;
+  }
+
+  .deal-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+
+  .deal-footer-actions .btn {
+    padding: 0.75rem 2.5rem;
+    border-radius: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 16px 36px rgba(13, 110, 253, 0.18);
+  }
+
+  .deal-footer-actions .btn-outline-primary {
+    box-shadow: none;
+    border-width: 1.5px;
+  }
+
+  [data-bs-theme="dark"] .deal-footer-actions .btn {
+    box-shadow: 0 18px 42px rgba(13, 110, 253, 0.28);
+  }
+
+  [data-bs-theme="dark"] .deal-footer-actions .btn-outline-primary {
+    box-shadow: none;
+  }
+
+  #deal-actions-alert,
+  #deal-contacts-alert {
+    border-radius: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .deal-section .delete-icon {
+    filter: drop-shadow(0 4px 8px rgba(220, 53, 69, 0.35));
+  }
+</style>
+
+<div class="d-flex flex-wrap align-items-center gap-2 text-muted mb-3">
+  <span class="fw-semibold text-body-secondary">Владелец сделки:</span>
+  <span>{{ deal.owner.get_full_name|default:deal.owner.username }}</span>
+</div>
+
 <form method="post" action="{% url 'deal_edit' deal.pk %}" id="deal-form">
   {% csrf_token %}
 
@@ -31,18 +456,73 @@
     </div>
   </div>
 
-  <div class="mb-3">
-    <label for="client" class="form-label">Клиент</label>
-    <div class="input-group">
-      <select class="form-select" id="client" name="client_id">
-        <option value="">— выберите клиента —</option>
-        {% for company in companies %}
-          <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>
-            {{ company.name }}
-          </option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">+</button>
+  <div class="deal-section deal-section-client">
+    <div class="section-heading">
+      <div>
+        <h4 class="mb-0">Клиент</h4>
+        <p class="section-subtitle">Выберите существующую компанию или создайте новую</p>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="client" class="form-label">Клиент</label>
+      <div class="input-group position-relative" id="client-selector">
+        <input type="text" class="form-control" id="client-search" placeholder="Начните вводить название, телефон или ИНН" autocomplete="off" aria-label="Выбор клиента" value="{{ deal.client.name|default_if_none:'' }}">
+        <input type="hidden" name="client_id" id="client-id" value="{{ deal.client_id|default_if_none:'' }}">
+        <button type="button" class="btn btn-outline-secondary" id="client-dropdown-toggle" aria-label="Показать список клиентов">▼</button>
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">+</button>
+        <div
+          class="dropdown-menu w-100"
+          id="client-dropdown"
+          role="listbox"
+          aria-labelledby="client-dropdown-toggle"
+          style="max-height: 240px; overflow-y: auto; top: calc(100% + 0.25rem); left: 0;"
+        ></div>
+      </div>
+    </div>
+
+    <div class="card" id="client-editor-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Данные клиента</h4>
+        <span class="badge bg-secondary" id="client-editor-type" hidden></span>
+      </div>
+      <div class="card-body">
+        <div id="client-editor-alert" class="alert d-none" role="alert"></div>
+        <p class="text-muted" id="client-editor-empty" {% if deal.client_id %}hidden{% endif %}>
+          Выберите клиента выше, чтобы отредактировать его данные.
+        </p>
+        <div id="client-editor-fields" {% if not deal.client_id %}class="d-none"{% endif %}>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="client-editor-name" class="form-label">Название</label>
+              <input type="text" class="form-control" id="client-editor-name">
+            </div>
+            <div class="col-md-6">
+              <label for="client-editor-phone" class="form-label">Телефон</label>
+              <input type="text" class="form-control" id="client-editor-phone">
+            </div>
+            <div class="col-md-6">
+              <label for="client-editor-email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="client-editor-email">
+            </div>
+            <div class="col-md-3">
+              <label for="client-editor-inn" class="form-label">ИНН</label>
+              <input type="text" class="form-control" id="client-editor-inn">
+            </div>
+            <div class="col-md-3">
+              <label for="client-editor-website" class="form-label">Сайт</label>
+              <input type="url" class="form-control" id="client-editor-website" placeholder="https://example.com">
+            </div>
+            <div class="col-12">
+              <label for="client-editor-address" class="form-label">Адрес</label>
+              <textarea class="form-control" id="client-editor-address" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="text-end mt-3">
+            <button type="button" class="btn btn-sm btn-primary" id="client-editor-save">Сохранить клиента</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -88,61 +568,16 @@
     </div>
   </div>
 </div>
-
-<hr class="my-4">
-
-<div class="card" id="client-editor-card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h4 class="mb-0">Данные клиента</h4>
-    <span class="badge bg-secondary" id="client-editor-type" hidden></span>
-  </div>
-  <div class="card-body">
-    <div id="client-editor-alert" class="alert d-none" role="alert"></div>
-    <p class="text-muted" id="client-editor-empty" {% if deal.client_id %}hidden{% endif %}>
-      Выберите клиента выше, чтобы отредактировать его данные.
-    </p>
-    <div id="client-editor-fields" {% if not deal.client_id %}class="d-none"{% endif %}>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label for="client-editor-name" class="form-label">Название</label>
-          <input type="text" class="form-control" id="client-editor-name">
-        </div>
-        <div class="col-md-6">
-          <label for="client-editor-phone" class="form-label">Телефон</label>
-          <input type="text" class="form-control" id="client-editor-phone">
-        </div>
-        <div class="col-md-6">
-          <label for="client-editor-email" class="form-label">Email</label>
-          <input type="email" class="form-control" id="client-editor-email">
-        </div>
-        <div class="col-md-3">
-          <label for="client-editor-inn" class="form-label">ИНН</label>
-          <input type="text" class="form-control" id="client-editor-inn">
-        </div>
-        <div class="col-md-3">
-          <label for="client-editor-website" class="form-label">Сайт</label>
-          <input type="url" class="form-control" id="client-editor-website" placeholder="https://example.com">
-        </div>
-        <div class="col-12">
-          <label for="client-editor-address" class="form-label">Адрес</label>
-          <textarea class="form-control" id="client-editor-address" rows="2"></textarea>
-        </div>
-      </div>
-      <div class="text-end mt-3">
-        <button type="button" class="btn btn-sm btn-primary" id="client-editor-save">Сохранить клиента</button>
-      </div>
+<div class="deal-section deal-section-contacts">
+  <div class="section-heading">
+    <div>
+      <h4 class="mb-0">Контакты</h4>
+      <p class="section-subtitle">Управляйте точками общения со стороны клиента</p>
     </div>
+    <button type="button" class="btn btn-outline-primary btn-sm" id="add-contact-btn" data-bs-toggle="modal" data-bs-target="#addContactModal">+</button>
   </div>
-</div>
-
-<hr class="my-4">
-
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h4 class="mb-0">Контакты</h4>
-  <button type="button" class="btn btn-outline-primary btn-sm" id="add-contact-btn" data-bs-toggle="modal" data-bs-target="#addContactModal">+</button>
-</div>
-<div id="deal-contacts-alert" class="alert d-none" role="alert"></div>
-<ul class="list-group" id="deal-contacts-list">
+  <div id="deal-contacts-alert" class="alert d-none" role="alert"></div>
+  <ul class="list-group" id="deal-contacts-list">
   {% for contact in contacts %}
   <li class="list-group-item contact-item" data-contact-id="{{ contact.id }}">
     <div class="row g-2">
@@ -177,7 +612,8 @@
   {% empty %}
   <li class="list-group-item text-muted" id="no-contacts-placeholder">Контактов пока нет</li>
   {% endfor %}
-</ul>
+  </ul>
+</div>
 
 <div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -218,51 +654,117 @@
     </div>
   </div>
 </div>
-
-<hr class="my-4">
-
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h4 class="mb-0">Действия</h4>
-  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addActionModal">+</button>
-</div>
-<div id="deal-actions-alert" class="alert d-none" role="alert"></div>
-<ul class="list-group" id="deal-actions-list">
+<div class="deal-section deal-section-actions">
+  <div class="section-heading">
+    <div>
+      <h4 class="mb-0">Действия</h4>
+      <p class="section-subtitle">Планируйте следующие шаги и напоминания</p>
+    </div>
+    <div class="section-controls">
+      <div class="btn-group btn-group-sm action-view-toggle" role="group" aria-label="Переключение вида действий">
+        <input type="radio" class="btn-check" name="action-view-mode" id="action-view-detailed" autocomplete="off" value="detailed" checked>
+        <label class="btn btn-outline-primary" for="action-view-detailed">Полный</label>
+        <input type="radio" class="btn-check" name="action-view-mode" id="action-view-compact" autocomplete="off" value="compact">
+        <label class="btn btn-outline-primary" for="action-view-compact">Краткий</label>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addActionModal">+</button>
+    </div>
+  </div>
+  <div id="deal-actions-alert" class="alert d-none" role="alert"></div>
+  <ul class="list-group" id="deal-actions-list">
   {% for action in actions %}
-  <li class="list-group-item action-item" data-action-id="{{ action.id }}">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div><strong>Начало:</strong> <span class="action-starts-at">{{ action.starts_at|date:"d.m.Y H:i" }}</span></div>
-      <a href="#" class="delete-icon action-delete" data-action-id="{{ action.id }}" title="Удалить действие"></a>
+  <li class="list-group-item action-item" data-action-id="{{ action.id }}" data-starts-at="{{ action.starts_at|date:'c' }}">
+    <div class="action-detailed-view">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div><strong>Начало:</strong> <span class="action-starts-at">{{ action.starts_at|date:"d.m.Y H:i" }}</span></div>
+        <a href="#" class="delete-icon action-delete" data-action-id="{{ action.id }}" title="Удалить действие"></a>
+      </div>
+      <div class="row g-2 align-items-end mb-3">
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Статус</label>
+          <select class="form-select action-status">
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if action.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Оповестить за</label>
+          <div class="input-group action-notify-group">
+            <input
+              type="number"
+              class="form-control action-notify-before"
+              min="0"
+              value="{{ action.notify_before_value|default_if_none:'' }}"
+              placeholder="0"
+            >
+            {% with current_unit=action.notify_before_unit|default:default_notify_unit %}
+            <select class="form-select action-notify-unit">
+              {% for value, label in notify_units_choices %}
+              <option value="{{ value }}" {% if current_unit == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small mb-1">Описание</label>
+        <textarea class="form-control action-description" rows="2">{{ action.description }}</textarea>
+      </div>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Напомнить</label>
+          <input type="datetime-local" class="form-control action-remind-at" value="{{ action.remind_at|date:'Y-m-d\\TH:i' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Периодичность</label>
+          <select class="form-select action-recurrence">
+            {% for value, label in recurrence_choices %}
+            <option value="{{ value }}" {% if action.recurrence == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4 custom-interval-wrapper {% if action.recurrence != 'custom' %}d-none{% endif %}">
+          <label class="form-label small mb-1">Интервал (дни)</label>
+          <input type="number" class="form-control action-custom-interval" min="1" value="{{ action.custom_interval_days|default_if_none:'' }}">
+        </div>
+        <div class="col-12 mt-2 text-end">
+          <button type="button" class="btn btn-sm btn-primary save-action-btn" data-action-id="{{ action.id }}">Сохранить</button>
+        </div>
+      </div>
     </div>
-    <div class="mb-3">
-      <label class="form-label small mb-1">Описание</label>
-      <textarea class="form-control action-description" rows="2">{{ action.description }}</textarea>
-    </div>
-    <div class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label small mb-1">Напомнить</label>
-        <input type="datetime-local" class="form-control action-remind-at" value="{{ action.remind_at|date:'Y-m-d\\TH:i' }}">
+    <div class="action-compact-view">
+      <div class="action-compact-main">
+        <div class="action-compact-header">
+          <span class="action-status-pill" data-status="{{ action.status }}">{{ action.get_status_display }}</span>
+          <div class="action-compact-start text-uppercase text-muted small">{{ action.starts_at|date:"d.m.Y H:i" }}</div>
+        </div>
+        <div class="action-compact-description">{{ action.description|default:"Без описания" }}</div>
+        <div class="action-compact-meta text-muted small">
+          {% if action.remind_at %}
+          Напомнить: {{ action.remind_at|date:"d.m.Y H:i" }} •
+          {% endif %}
+          Периодичность: {{ action.get_recurrence_display }}
+          {% if action.recurrence == 'custom' and action.custom_interval_days %}
+          ({{ action.custom_interval_days }} дн.)
+          {% endif %}
+          {% if action.notify_before_value %}
+          • Оповещение за {{ action.notify_before_value }} {{ action.get_notify_before_unit_display }}
+          {% endif %}
+        </div>
       </div>
-      <div class="col-md-4">
-        <label class="form-label small mb-1">Периодичность</label>
-        <select class="form-select action-recurrence">
-          {% for value, label in recurrence_choices %}
-          <option value="{{ value }}" {% if action.recurrence == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4 custom-interval-wrapper {% if action.recurrence != 'custom' %}d-none{% endif %}">
-        <label class="form-label small mb-1">Интервал (дни)</label>
-        <input type="number" class="form-control action-custom-interval" min="1" value="{{ action.custom_interval_days|default_if_none:'' }}">
-      </div>
-      <div class="col-12 mt-2 text-end">
-        <button type="button" class="btn btn-sm btn-primary save-action-btn" data-action-id="{{ action.id }}">Сохранить</button>
+      <div class="action-compact-controls d-flex align-items-start gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm action-open-detailed" data-action-id="{{ action.id }}">Редактировать</button>
+        <a href="#" class="delete-icon action-delete" data-action-id="{{ action.id }}" title="Удалить действие"></a>
       </div>
     </div>
   </li>
   {% empty %}
   <li class="list-group-item text-muted" id="no-actions-placeholder">Действий пока нет</li>
   {% endfor %}
-</ul>
+  </ul>
+</div>
 
 <div class="modal fade" id="addActionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -279,8 +781,20 @@
             {{ action_form.description }}
           </div>
           <div class="mb-3">
+            {{ action_form.status.label_tag }}
+            {{ action_form.status }}
+          </div>
+          <div class="mb-3">
             {{ action_form.remind_at.label_tag }}
             {{ action_form.remind_at }}
+          </div>
+          <div class="mb-3">
+            {{ action_form.notify_before_value.label_tag }}
+            <div class="input-group action-notify-group">
+              {{ action_form.notify_before_value }}
+              {{ action_form.notify_before_unit }}
+            </div>
+            <div class="form-text">0 — без дополнительного оповещения</div>
           </div>
           <div class="mb-3">
             {{ action_form.recurrence.label_tag }}
@@ -300,28 +814,36 @@
   </div>
 </div>
 
-<hr class="my-4">
-
-<h4>Документы</h4>
-<ul class="list-group">
-  {% for doc in deal.documents.all %}
-  <li class="list-group-item d-flex justify-content-between align-items-center">
+<div class="deal-section deal-section-documents">
+  <div class="section-heading">
     <div>
-      {{ forloop.counter }}. {{ doc.filename }} —
-      <a href="{% url 'download_document' doc.pk %}">скачать</a>
+      <h4 class="mb-0">Документы</h4>
+      <p class="section-subtitle">Файлы и договоры, относящиеся к сделке</p>
     </div>
-    <a href="{% url 'delete_document' doc.pk %}"
-       onclick="return confirm('Удалить документ {{ doc.filename }}?');"
-       class="delete-icon"></a>
-  </li>
-  {% empty %}
-  <li class="list-group-item">Нет документов</li>
-  {% endfor %}
-</ul>
+  </div>
 
-<a class="btn btn-primary mt-2" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+  <ul class="list-group deal-documents-list">
+    {% for doc in deal.documents.all %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        {{ forloop.counter }}. {{ doc.filename }} —
+        <a href="{% url 'download_document' doc.pk %}">скачать</a>
+      </div>
+      <a href="{% url 'delete_document' doc.pk %}"
+         onclick="return confirm('Удалить документ {{ doc.filename }}?');"
+         class="delete-icon"></a>
+    </li>
+    {% empty %}
+    <li class="list-group-item text-muted">Нет документов</li>
+    {% endfor %}
+  </ul>
 
-<div class="d-flex justify-content-end gap-3 mt-5">
+  <div class="d-flex justify-content-end">
+    <a class="btn btn-outline-primary" href="{% url 'upload_document' deal.pk %}">Загрузить документ</a>
+  </div>
+</div>
+
+<div class="deal-footer-actions">
   <button type="submit" form="deal-form" class="btn btn-primary btn-lg">Сохранить</button>
   <button type="submit" form="deal-form" name="save_and_exit" value="1" class="btn btn-outline-primary btn-lg">Сохранить и выйти</button>
 </div>
@@ -329,6 +851,8 @@
 {{ companies_data|json_script:"companies-data" }}
 {{ contacts_data|json_script:"deal-contacts-data" }}
 {{ recurrence_options|json_script:"deal-action-choices-data" }}
+{{ status_options|json_script:"deal-action-status-data" }}
+{{ notify_units_options|json_script:"deal-action-notify-units-data" }}
 
 <script>
 function getCookie(name) {
@@ -342,23 +866,48 @@ const csrftoken = getCookie('csrftoken');
 <script>
 const dealId = {{ deal.pk }};
 const initialClientId = "{{ deal.client_id|default_if_none:'' }}";
+let currentClientId = initialClientId;
 const companiesDataElement = document.getElementById("companies-data");
 const companiesById = {};
+const companiesList = [];
+let filteredCompanies = [];
+let highlightedCompanyIndex = -1;
+let isClientDropdownOpen = false;
+let suppressClientSearchInputEvent = false;
+let lastFilterValue = "";
+
+function upsertCompanyRecord(company) {
+  if (!company || company.id === undefined) {
+    return;
+  }
+  const key = String(company.id);
+  const existing = companiesById[key] || {};
+  const merged = { ...existing, ...company, id: company.id };
+  companiesById[key] = merged;
+  const existingIndex = companiesList.findIndex((item) => String(item.id) === key);
+  if (existingIndex === -1) {
+    companiesList.push(merged);
+  } else {
+    companiesList[existingIndex] = merged;
+  }
+}
+
 if (companiesDataElement) {
   try {
     const parsedCompanies = JSON.parse(companiesDataElement.textContent || "[]");
     parsedCompanies.forEach((company) => {
-      if (!company || company.id === undefined) {
-        return;
-      }
-      companiesById[String(company.id)] = company;
+      upsertCompanyRecord(company);
     });
   } catch (error) {
     console.error("Не удалось разобрать данные компаний", error);
   }
 }
 
-const clientSelect = document.getElementById("client");
+const clientSelector = document.getElementById("client-selector");
+const clientSearchInput = document.getElementById("client-search");
+const clientIdInput = document.getElementById("client-id");
+const clientDropdown = document.getElementById("client-dropdown");
+const clientDropdownToggle = document.getElementById("client-dropdown-toggle");
 const clientEditorFields = document.getElementById("client-editor-fields");
 const clientEditorEmpty = document.getElementById("client-editor-empty");
 const clientEditorAlert = document.getElementById("client-editor-alert");
@@ -382,6 +931,353 @@ const newClientFields = {
   website: document.getElementById("new-client-website"),
   address: document.getElementById("new-client-address"),
 };
+
+function normalizeSearchTerm(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function extractDigits(value) {
+  return String(value || "").replace(/\D+/g, "");
+}
+
+function companyMatchesFilter(company, normalizedFilter, digitsFilter) {
+  if (!normalizedFilter && !digitsFilter) {
+    return true;
+  }
+
+  const textTargets = [
+    company.name,
+    company.email,
+    company.website,
+    company.address,
+  ];
+
+  if (normalizedFilter) {
+    const hasTextMatch = textTargets.some((value) =>
+      (value || "").toLowerCase().includes(normalizedFilter)
+    );
+    if (hasTextMatch) {
+      return true;
+    }
+
+    const innValue = (company.inn || "").toLowerCase();
+    if (innValue.includes(normalizedFilter)) {
+      return true;
+    }
+    const phoneValue = (company.phone || "").toLowerCase();
+    if (phoneValue.includes(normalizedFilter)) {
+      return true;
+    }
+  }
+
+  if (digitsFilter) {
+    const phoneDigits = extractDigits(company.phone);
+    if (phoneDigits.includes(digitsFilter)) {
+      return true;
+    }
+    const innDigits = extractDigits(company.inn);
+    if (innDigits.includes(digitsFilter)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getCompanyById(companyId) {
+  if (companyId === null || companyId === undefined || companyId === "") {
+    return null;
+  }
+  return companiesById[String(companyId)] || null;
+}
+
+function setClientSearchValue(value) {
+  if (!clientSearchInput) {
+    return;
+  }
+  suppressClientSearchInputEvent = true;
+  clientSearchInput.value = value || "";
+  suppressClientSearchInputEvent = false;
+}
+
+function openClientDropdown() {
+  if (!clientDropdown || isClientDropdownOpen) {
+    return;
+  }
+  clientDropdown.classList.add("show");
+  clientDropdown.style.display = "block";
+  isClientDropdownOpen = true;
+  if (clientDropdownToggle) {
+    clientDropdownToggle.setAttribute("aria-expanded", "true");
+  }
+}
+
+function closeClientDropdown() {
+  if (!clientDropdown || !isClientDropdownOpen) {
+    return;
+  }
+  clientDropdown.classList.remove("show");
+  clientDropdown.style.display = "";
+  isClientDropdownOpen = false;
+  highlightedCompanyIndex = -1;
+  if (clientDropdownToggle) {
+    clientDropdownToggle.setAttribute("aria-expanded", "false");
+  }
+}
+
+function setHighlightedIndex(newIndex, { scrollIntoView = true } = {}) {
+  highlightedCompanyIndex = newIndex;
+  if (!clientDropdown) {
+    return;
+  }
+  const items = clientDropdown.querySelectorAll("[data-company-id]");
+  items.forEach((item, index) => {
+    const isActive = index === newIndex;
+    item.classList.toggle("active", isActive);
+    item.setAttribute("aria-selected", isActive ? "true" : "false");
+    if (isActive && scrollIntoView) {
+      item.scrollIntoView({ block: "nearest" });
+    }
+  });
+}
+
+function highlightRelative(offset) {
+  if (!filteredCompanies.length) {
+    return;
+  }
+  let newIndex = highlightedCompanyIndex;
+  if (newIndex === -1) {
+    newIndex = offset > 0 ? 0 : filteredCompanies.length - 1;
+  } else {
+    newIndex += offset;
+    if (newIndex >= filteredCompanies.length) {
+      newIndex = 0;
+    } else if (newIndex < 0) {
+      newIndex = filteredCompanies.length - 1;
+    }
+  }
+  setHighlightedIndex(newIndex);
+}
+
+function renderCompanyOptions(filterValue = "", { shouldOpen = true, highlightFirst = false, highlightSelected = false } = {}) {
+  if (!clientDropdown) {
+    return;
+  }
+
+  lastFilterValue = filterValue || "";
+  const normalizedFilter = normalizeSearchTerm(filterValue);
+  const digitsFilter = extractDigits(filterValue);
+
+  filteredCompanies = companiesList.filter((company) =>
+    companyMatchesFilter(company, normalizedFilter, digitsFilter)
+  );
+
+  const fragment = document.createDocumentFragment();
+
+  if (!filteredCompanies.length) {
+    const emptyOption = document.createElement("div");
+    emptyOption.className = "dropdown-item disabled text-muted";
+    emptyOption.textContent = "Ничего не найдено";
+    fragment.appendChild(emptyOption);
+  } else {
+    filteredCompanies.forEach((company, index) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "dropdown-item text-start";
+      option.dataset.companyId = company.id;
+      option.dataset.index = String(index);
+      option.setAttribute("role", "option");
+      option.textContent = company.name || `Компания #${company.id}`;
+      option.addEventListener("mouseenter", () =>
+        setHighlightedIndex(index, { scrollIntoView: false })
+      );
+      option.addEventListener("mousedown", (event) => event.preventDefault());
+      option.addEventListener("click", () => {
+        selectCompanyById(company.id);
+      });
+      fragment.appendChild(option);
+    });
+  }
+
+  clientDropdown.innerHTML = "";
+  clientDropdown.appendChild(fragment);
+
+  if (!filteredCompanies.length) {
+    setHighlightedIndex(-1);
+  } else if (highlightFirst) {
+    setHighlightedIndex(0, { scrollIntoView: false });
+  } else if (highlightSelected && clientIdInput && clientIdInput.value) {
+    const selectedIndex = filteredCompanies.findIndex(
+      (company) => String(company.id) === clientIdInput.value
+    );
+    setHighlightedIndex(selectedIndex);
+  } else {
+    setHighlightedIndex(-1);
+  }
+
+  if (shouldOpen) {
+    openClientDropdown();
+  } else {
+    closeClientDropdown();
+  }
+}
+
+function clearClientSelection({ triggerChange = true } = {}) {
+  if (!clientIdInput || !clientIdInput.value) {
+    return;
+  }
+  clientIdInput.value = "";
+  currentClientId = "";
+  if (triggerChange) {
+    handleClientChange();
+  }
+}
+
+function selectCompanyById(companyId, { focusInput = true } = {}) {
+  const company = getCompanyById(companyId);
+  const idValue = company ? String(company.id) : "";
+  if (clientIdInput) {
+    clientIdInput.value = idValue;
+  }
+  currentClientId = idValue;
+  setClientSearchValue(company ? company.name || "" : clientSearchInput ? clientSearchInput.value : "");
+  lastFilterValue = "";
+  renderCompanyOptions("", { shouldOpen: false });
+  closeClientDropdown();
+  if (focusInput && clientSearchInput) {
+    clientSearchInput.focus();
+    const { value } = clientSearchInput;
+    clientSearchInput.setSelectionRange(value.length, value.length);
+  }
+  handleClientChange();
+}
+
+function selectHighlightedCompany() {
+  if (highlightedCompanyIndex === -1 || !filteredCompanies[highlightedCompanyIndex]) {
+    return;
+  }
+  selectCompanyById(filteredCompanies[highlightedCompanyIndex].id);
+}
+
+function handleSearchInputChange(event) {
+  if (suppressClientSearchInputEvent) {
+    return;
+  }
+  const value = event.target.value || "";
+  const selectedCompany = clientIdInput && clientIdInput.value ? getCompanyById(clientIdInput.value) : null;
+  if (selectedCompany && (selectedCompany.name || "") !== value) {
+    clearClientSelection({ triggerChange: true });
+  }
+  renderCompanyOptions(value, { shouldOpen: true, highlightFirst: true });
+}
+
+if (clientSearchInput) {
+  clientSearchInput.addEventListener("input", handleSearchInputChange);
+  clientSearchInput.addEventListener("focus", () => {
+    renderCompanyOptions(clientSearchInput.value, {
+      shouldOpen: true,
+      highlightSelected: true,
+    });
+  });
+  clientSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      renderCompanyOptions(clientSearchInput.value, {
+        shouldOpen: true,
+        highlightFirst: highlightedCompanyIndex === -1,
+      });
+      highlightRelative(1);
+      event.preventDefault();
+    } else if (event.key === "ArrowUp") {
+      renderCompanyOptions(clientSearchInput.value, {
+        shouldOpen: true,
+        highlightFirst: highlightedCompanyIndex === -1,
+      });
+      highlightRelative(-1);
+      event.preventDefault();
+    } else if (event.key === "Enter") {
+      if (isClientDropdownOpen && filteredCompanies.length) {
+        if (highlightedCompanyIndex === -1) {
+          setHighlightedIndex(0);
+        }
+        selectHighlightedCompany();
+      } else if (filteredCompanies.length) {
+        renderCompanyOptions(clientSearchInput.value, { shouldOpen: true, highlightFirst: true });
+      }
+      event.preventDefault();
+    } else if (event.key === "Escape") {
+      if (isClientDropdownOpen) {
+        closeClientDropdown();
+      } else if (clientSearchInput.value) {
+        clientSearchInput.value = "";
+        clearClientSelection({ triggerChange: true });
+      } else {
+        clientSearchInput.blur();
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
+  clientSearchInput.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (!clientSelector || clientSelector.contains(document.activeElement)) {
+        return;
+      }
+      closeClientDropdown();
+      if (!clientIdInput || !clientIdInput.value) {
+        clientSearchInput.value = "";
+      } else {
+        const selectedCompany = getCompanyById(clientIdInput.value);
+        setClientSearchValue(selectedCompany ? selectedCompany.name || "" : "");
+      }
+    }, 150);
+  });
+}
+
+if (clientDropdownToggle) {
+  clientDropdownToggle.addEventListener("mousedown", (event) => {
+    event.preventDefault();
+  });
+  clientDropdownToggle.addEventListener("click", () => {
+    if (isClientDropdownOpen) {
+      closeClientDropdown();
+    } else {
+      const filterValue = clientSearchInput ? clientSearchInput.value : "";
+      renderCompanyOptions(filterValue, {
+        shouldOpen: true,
+        highlightSelected: true,
+      });
+      if (clientSearchInput) {
+        clientSearchInput.focus();
+      }
+    }
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (!clientSelector || clientSelector.contains(event.target)) {
+    return;
+  }
+  closeClientDropdown();
+});
+
+renderCompanyOptions("", { shouldOpen: false });
+
+if (initialClientId) {
+  const initialCompany = getCompanyById(initialClientId);
+  if (initialCompany) {
+    setClientSearchValue(initialCompany.name || "");
+  }
+}
+
+if (!initialClientId && clientSearchInput && clientSearchInput.value) {
+  const typed = clientSearchInput.value.trim();
+  if (typed) {
+    clearClientSelection({ triggerChange: false });
+  }
+}
+
+handleClientChange();
+
 
 function showClientAlert(message, type = "danger") {
   if (!clientEditorAlert) {
@@ -515,28 +1411,35 @@ function fillClientInputs(company) {
 }
 
 function syncCompanyOption(company) {
-  if (!clientSelect || !company) {
+  if (!company) {
     return;
   }
-  companiesById[String(company.id)] = company;
-  let option = clientSelect.querySelector(`option[value="${company.id}"]`);
-  if (!option) {
-    option = document.createElement("option");
-    option.value = company.id;
-    clientSelect.appendChild(option);
+  upsertCompanyRecord(company);
+  const searchValue = clientSearchInput ? clientSearchInput.value : "";
+  renderCompanyOptions(searchValue, {
+    shouldOpen: isClientDropdownOpen,
+    highlightSelected: true,
+  });
+  if (clientIdInput && clientIdInput.value === String(company.id)) {
+    setClientSearchValue(company.name || "");
+    handleClientChange();
   }
-  option.textContent = company.name;
 }
 
 function handleClientChange() {
-  if (!clientSelect) return;
-  const selectedId = clientSelect.value;
+  const selectedId = clientIdInput ? clientIdInput.value : "";
+  const hasSearchFilter = Boolean(normalizeSearchTerm(lastFilterValue) || extractDigits(lastFilterValue));
+  if (selectedId) {
+    currentClientId = selectedId;
+  } else if (!hasSearchFilter) {
+    currentClientId = "";
+  }
   if (!selectedId) {
     toggleClientEditor(false);
     document.dispatchEvent(new CustomEvent("client:changed", { detail: { companyId: null } }));
     return;
   }
-  const company = companiesById[selectedId];
+  const company = getCompanyById(selectedId);
   if (!company) {
     toggleClientEditor(false);
     document.dispatchEvent(new CustomEvent("client:changed", { detail: { companyId: null } }));
@@ -545,12 +1448,6 @@ function handleClientChange() {
   fillClientInputs(company);
   showClientAlert(null);
   document.dispatchEvent(new CustomEvent("client:changed", { detail: { companyId: selectedId } }));
-}
-
-if (clientSelect) {
-  clientSelect.addEventListener("change", handleClientChange);
-  // Заполняем форму при первой загрузке
-  handleClientChange();
 }
 
 const saveNewClientButton = document.getElementById("save-client-btn");
@@ -598,10 +1495,7 @@ if (saveNewClientButton) {
         }
 
         syncCompanyOption(data);
-        if (clientSelect) {
-          clientSelect.value = String(data.id);
-          clientSelect.dispatchEvent(new Event("change"));
-        }
+        selectCompanyById(data.id);
 
         const modalElement = document.getElementById("addClientModal");
         const modal = modalElement ? bootstrap.Modal.getInstance(modalElement) : null;
@@ -623,11 +1517,11 @@ if (saveNewClientButton) {
 
 if (clientEditorSaveButton) {
   clientEditorSaveButton.addEventListener("click", () => {
-    if (!clientSelect || !clientSelect.value) {
+    if (!clientIdInput || !clientIdInput.value) {
       showClientAlert("Сначала выберите клиента.");
       return;
     }
-    const selectedId = clientSelect.value;
+    const selectedId = clientIdInput.value;
     const payload = {
       name: clientInputs.name ? clientInputs.name.value.trim() : "",
       phone: clientInputs.phone ? clientInputs.phone.value.trim() : "",
@@ -1239,6 +2133,23 @@ ensureNoContactsPlaceholder();
 
 <script>
 const recurrenceOptions = JSON.parse(document.getElementById("deal-action-choices-data").textContent);
+const statusOptionsElement = document.getElementById("deal-action-status-data");
+const statusOptions = statusOptionsElement
+  ? JSON.parse(statusOptionsElement.textContent || "[]")
+  : [];
+const notifyUnitsElement = document.getElementById("deal-action-notify-units-data");
+const notifyUnitsOptions = notifyUnitsElement
+  ? JSON.parse(notifyUnitsElement.textContent || "[]")
+  : [];
+const STATUS_SCHEDULED = "scheduled";
+const STATUS_IN_PROGRESS = "in_progress";
+const STATUS_COMPLETED = "completed";
+const STATUS_OVERDUE = "overdue";
+const STATUS_CANCELLED = "cancelled";
+const DEFAULT_ACTION_STATUS =
+  (statusOptions.find((option) => option.value === "scheduled") || statusOptions[0] || {}).value || "scheduled";
+const DEFAULT_NOTIFY_UNIT =
+  (notifyUnitsOptions.find((option) => option.value === "minutes") || notifyUnitsOptions[0] || {}).value || "minutes";
 const actionsList = document.getElementById("deal-actions-list");
 const actionsAlert = document.getElementById("deal-actions-alert");
 const newActionModalElement = document.getElementById("addActionModal");
@@ -1334,10 +2245,289 @@ function ensureNoActionsPlaceholder() {
   }
 }
 
+const ACTION_VIEW_STORAGE_KEY = "deal-actions-view-mode";
+
+function getRecurrenceLabel(value) {
+  if (!Array.isArray(recurrenceOptions)) {
+    return value;
+  }
+  const match = recurrenceOptions.find((option) => option.value === value);
+  return match ? match.label : value;
+}
+
+function getStatusLabel(value) {
+  if (!Array.isArray(statusOptions)) {
+    return value;
+  }
+  const match = statusOptions.find((option) => option.value === value);
+  return match ? match.label : value;
+}
+
+function getNotifyUnitLabel(value) {
+  if (!Array.isArray(notifyUnitsOptions)) {
+    return value;
+  }
+  const match = notifyUnitsOptions.find((option) => option.value === value);
+  return match ? match.label : value;
+}
+
+function formatDateTimeLocal(value) {
+  if (!value) {
+    return null;
+  }
+  let parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime()) && typeof value === "string") {
+    const normalized = value.replace(" ", "T");
+    parsed = new Date(normalized);
+  }
+  if (Number.isNaN(parsed.getTime())) {
+    return typeof value === "string" ? value : null;
+  }
+  const pad = (num) => String(num).padStart(2, "0");
+  const day = pad(parsed.getDate());
+  const month = pad(parsed.getMonth() + 1);
+  const year = parsed.getFullYear();
+  const hours = pad(parsed.getHours());
+  const minutes = pad(parsed.getMinutes());
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
+
+function refreshActionCompactView(actionItem) {
+  if (!actionItem) {
+    return;
+  }
+  const statusSelect = actionItem.querySelector(".action-status");
+  const statusValue = statusSelect ? statusSelect.value || DEFAULT_ACTION_STATUS : DEFAULT_ACTION_STATUS;
+  const statusPill = actionItem.querySelector(".action-status-pill");
+  if (statusPill) {
+    statusPill.dataset.status = statusValue;
+    statusPill.textContent = getStatusLabel(statusValue) || getStatusLabel(DEFAULT_ACTION_STATUS) || statusValue;
+  }
+  const compactStart = actionItem.querySelector(".action-compact-start");
+  const detailedStart = actionItem.querySelector(".action-starts-at");
+  if (compactStart) {
+    const value = detailedStart ? detailedStart.textContent.trim() : "";
+    compactStart.textContent = value || "—";
+  }
+
+  const descriptionField = actionItem.querySelector(".action-description");
+  const compactDescription = actionItem.querySelector(".action-compact-description");
+  if (compactDescription) {
+    const text = descriptionField ? descriptionField.value.trim() : "";
+    compactDescription.textContent = text || "Без описания";
+  }
+
+  const compactMeta = actionItem.querySelector(".action-compact-meta");
+  if (compactMeta) {
+    const remindInput = actionItem.querySelector(".action-remind-at");
+    const recurrenceSelect = actionItem.querySelector(".action-recurrence");
+    const customInput = actionItem.querySelector(".action-custom-interval");
+    const notifyInput = actionItem.querySelector(".action-notify-before");
+    const notifyUnitSelect = actionItem.querySelector(".action-notify-unit");
+
+    const metaParts = [];
+    if (remindInput && remindInput.value) {
+      const formattedRemind = formatDateTimeLocal(remindInput.value);
+      metaParts.push(`Напомнить: ${formattedRemind || remindInput.value}`);
+    }
+
+    if (recurrenceSelect) {
+      const recurrenceValue = recurrenceSelect.value;
+      let recurrenceText = `Периодичность: ${getRecurrenceLabel(recurrenceValue)}`;
+      if (recurrenceValue === "custom" && customInput && customInput.value) {
+        recurrenceText += ` (${customInput.value} дн.)`;
+      }
+      metaParts.push(recurrenceText);
+    }
+
+    if (notifyInput && notifyInput.value) {
+      const notifyNumeric = Number(notifyInput.value);
+      if (!Number.isNaN(notifyNumeric) && notifyNumeric > 0) {
+        const unitValue = notifyUnitSelect ? notifyUnitSelect.value : DEFAULT_NOTIFY_UNIT;
+        const unitLabel = getNotifyUnitLabel(unitValue);
+        metaParts.push(`Оповещение за ${notifyNumeric} ${unitLabel}`);
+      }
+    }
+
+    compactMeta.textContent = metaParts.length ? metaParts.join(" • ") : "Периодичность: —";
+  }
+}
+
+function refreshAllActionSummaries() {
+  document.querySelectorAll("#deal-actions-list .action-item").forEach((item) => {
+    refreshActionCompactView(item);
+  });
+}
+
+function buildActionPayload(actionItem) {
+  const descriptionField = actionItem.querySelector(".action-description");
+  const remindField = actionItem.querySelector(".action-remind-at");
+  const recurrenceSelect = actionItem.querySelector(".action-recurrence");
+  const customWrapper = actionItem.querySelector(".custom-interval-wrapper");
+  const customInput = customWrapper ? customWrapper.querySelector(".action-custom-interval") : null;
+  const statusSelect = actionItem.querySelector(".action-status");
+  const notifyInput = actionItem.querySelector(".action-notify-before");
+  const notifyUnitSelect = actionItem.querySelector(".action-notify-unit");
+
+  const notifyRaw = notifyInput && notifyInput.value !== "" ? Number(notifyInput.value) : null;
+  const notifyValue = notifyRaw && !Number.isNaN(notifyRaw) && notifyRaw > 0 ? notifyRaw : null;
+
+  return {
+    description: descriptionField ? descriptionField.value.trim() : "",
+    remind_at: remindField && remindField.value ? remindField.value : null,
+    status: statusSelect ? statusSelect.value || DEFAULT_ACTION_STATUS : DEFAULT_ACTION_STATUS,
+    notify_before_value: notifyValue,
+    notify_before_unit:
+      notifyValue !== null
+        ? (notifyUnitSelect ? notifyUnitSelect.value || DEFAULT_NOTIFY_UNIT : DEFAULT_NOTIFY_UNIT)
+        : null,
+    recurrence: recurrenceSelect ? recurrenceSelect.value : "none",
+    custom_interval_days: customInput && customInput.value ? customInput.value : null,
+  };
+}
+
+function sendActionUpdate(actionItem, payload, { silent = false } = {}) {
+  const actionId = actionItem.dataset.actionId;
+  return sendActionRequest(`/deals/${dealId}/actions/${actionId}/update/`, payload)
+    .then(({ ok, data }) => {
+      if (!ok) {
+        const message = data && (data.error || formatErrors(data.errors));
+        if (silent) {
+          console.error("Не удалось сохранить действие:", message);
+        } else {
+          showActionMessage(message || "Не удалось сохранить действие.");
+        }
+        throw new Error(message || "Action update failed");
+      }
+      if (data && data.action) {
+        updateActionItem(actionItem, data.action);
+      }
+      if (!silent) {
+        showActionMessage("Действие обновлено.", "success");
+      }
+      return data ? data.action : null;
+    })
+    .catch((error) => {
+      if (!silent && !(error instanceof Error && error.message === "Action update failed")) {
+        showActionMessage("Не удалось сохранить действие.");
+      }
+      throw error;
+    });
+}
+
+function markActionAsOverdue(actionItem) {
+  if (!actionItem) {
+    return;
+  }
+  if (actionItem.dataset.overdueUpdated === "done") {
+    return;
+  }
+  const statusSelect = actionItem.querySelector(".action-status");
+  if (!statusSelect) {
+    return;
+  }
+  const currentStatus = statusSelect.value;
+  if ([STATUS_COMPLETED, STATUS_CANCELLED, STATUS_OVERDUE].includes(currentStatus)) {
+    actionItem.dataset.overdueUpdated = "done";
+    return;
+  }
+  statusSelect.value = STATUS_OVERDUE;
+  refreshActionCompactView(actionItem);
+  actionItem.dataset.overdueUpdated = "pending";
+  const payload = buildActionPayload(actionItem);
+  payload.status = STATUS_OVERDUE;
+  sendActionUpdate(actionItem, payload, { silent: true })
+    .then(() => {
+      actionItem.dataset.overdueUpdated = "done";
+    })
+    .catch(() => {
+      actionItem.dataset.overdueUpdated = "retry";
+    });
+}
+
+function checkActionsForOverdue() {
+  const now = Date.now();
+  document.querySelectorAll("#deal-actions-list .action-item").forEach((item) => {
+    const startsAt = item.dataset.startsAt;
+    if (!startsAt) {
+      return;
+    }
+    const startMs = Date.parse(startsAt);
+    if (Number.isNaN(startMs)) {
+      return;
+    }
+    if (startMs <= now) {
+      const statusSelect = item.querySelector(".action-status");
+      const currentStatus = statusSelect ? statusSelect.value : null;
+      if (currentStatus && ![STATUS_COMPLETED, STATUS_CANCELLED, STATUS_OVERDUE].includes(currentStatus)) {
+        markActionAsOverdue(item);
+      }
+    }
+  });
+}
+
+const actionViewDetailedInput = document.getElementById("action-view-detailed");
+const actionViewCompactInput = document.getElementById("action-view-compact");
+
+function applyActionViewMode(mode, { persist = true } = {}) {
+  if (!actionsList) {
+    return;
+  }
+  if (mode === "compact") {
+    actionsList.classList.add("compact-view");
+    if (actionViewCompactInput) {
+      actionViewCompactInput.checked = true;
+    }
+  } else {
+    actionsList.classList.remove("compact-view");
+    mode = "detailed";
+    if (actionViewDetailedInput) {
+      actionViewDetailedInput.checked = true;
+    }
+  }
+  if (persist) {
+    try {
+      localStorage.setItem(ACTION_VIEW_STORAGE_KEY, mode);
+    } catch (error) {
+      console.debug("Не удалось сохранить режим действий", error);
+    }
+  }
+  if (mode === "compact") {
+    refreshAllActionSummaries();
+  }
+}
+
+document.querySelectorAll('input[name="action-view-mode"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    if (input.checked) {
+      applyActionViewMode(input.value);
+    }
+  });
+});
+
+let savedActionsView = null;
+try {
+  savedActionsView = localStorage.getItem(ACTION_VIEW_STORAGE_KEY);
+} catch (error) {
+  savedActionsView = null;
+}
+
+if (savedActionsView === "compact") {
+  applyActionViewMode("compact", { persist: false });
+} else {
+  applyActionViewMode("detailed", { persist: false });
+}
+
 function renderActionItem(action) {
   const li = document.createElement("li");
   li.className = "list-group-item action-item";
   li.dataset.actionId = action.id;
+  if (action.starts_at) {
+    li.dataset.startsAt = action.starts_at;
+  }
+
+  const detailedView = document.createElement("div");
+  detailedView.className = "action-detailed-view";
 
   const header = document.createElement("div");
   header.className = "d-flex justify-content-between align-items-center mb-2";
@@ -1352,15 +2542,82 @@ function renderActionItem(action) {
   startWrapper.appendChild(document.createTextNode(" "));
   startWrapper.appendChild(startSpan);
 
-  const deleteLink = document.createElement("a");
-  deleteLink.href = "#";
-  deleteLink.className = "delete-icon action-delete";
-  deleteLink.dataset.actionId = action.id;
-  deleteLink.title = "Удалить действие";
+  const makeDeleteLink = () => {
+    const link = document.createElement("a");
+    link.href = "#";
+    link.className = "delete-icon action-delete";
+    link.dataset.actionId = action.id;
+    link.title = "Удалить действие";
+    return link;
+  };
 
   header.appendChild(startWrapper);
-  header.appendChild(deleteLink);
-  li.appendChild(header);
+  header.appendChild(makeDeleteLink());
+  detailedView.appendChild(header);
+
+  const settingsRow = document.createElement("div");
+  settingsRow.className = "row g-2 align-items-end mb-3";
+
+  const statusCol = document.createElement("div");
+  statusCol.className = "col-md-4";
+  const statusLabel = document.createElement("label");
+  statusLabel.className = "form-label small mb-1";
+  statusLabel.textContent = "Статус";
+  const statusSelect = document.createElement("select");
+  statusSelect.className = "form-select action-status";
+  const statusValue = action.status || DEFAULT_ACTION_STATUS;
+  (statusOptions.length ? statusOptions : [{ value: statusValue, label: getStatusLabel(statusValue) || statusValue }]).forEach(
+    (option) => {
+      const opt = document.createElement("option");
+      opt.value = option.value;
+      opt.textContent = option.label;
+      if (option.value === statusValue) {
+        opt.selected = true;
+      }
+      statusSelect.appendChild(opt);
+    }
+  );
+  statusCol.appendChild(statusLabel);
+  statusCol.appendChild(statusSelect);
+  settingsRow.appendChild(statusCol);
+
+  const notifyCol = document.createElement("div");
+  notifyCol.className = "col-md-4";
+  const notifyLabel = document.createElement("label");
+  notifyLabel.className = "form-label small mb-1";
+  notifyLabel.textContent = "Оповестить за";
+  const notifyGroup = document.createElement("div");
+  notifyGroup.className = "input-group action-notify-group";
+  const notifyInput = document.createElement("input");
+  notifyInput.type = "number";
+  notifyInput.className = "form-control action-notify-before";
+  notifyInput.min = "0";
+  notifyInput.placeholder = "0";
+  if (action.notify_before_value !== null && action.notify_before_value !== undefined) {
+    notifyInput.value = action.notify_before_value;
+  }
+  const notifySelect = document.createElement("select");
+  notifySelect.className = "form-select action-notify-unit";
+  const notifyUnitValue = action.notify_before_unit || DEFAULT_NOTIFY_UNIT;
+  (notifyUnitsOptions.length
+    ? notifyUnitsOptions
+    : [{ value: notifyUnitValue, label: getNotifyUnitLabel(notifyUnitValue) || notifyUnitValue }]
+  ).forEach((option) => {
+    const opt = document.createElement("option");
+    opt.value = option.value;
+    opt.textContent = option.label;
+    if (option.value === notifyUnitValue) {
+      opt.selected = true;
+    }
+    notifySelect.appendChild(opt);
+  });
+  notifyGroup.appendChild(notifyInput);
+  notifyGroup.appendChild(notifySelect);
+  notifyCol.appendChild(notifyLabel);
+  notifyCol.appendChild(notifyGroup);
+  settingsRow.appendChild(notifyCol);
+
+  detailedView.appendChild(settingsRow);
 
   const descriptionGroup = document.createElement("div");
   descriptionGroup.className = "mb-3";
@@ -1373,7 +2630,7 @@ function renderActionItem(action) {
   descriptionField.value = action.description || "";
   descriptionGroup.appendChild(descriptionLabel);
   descriptionGroup.appendChild(descriptionField);
-  li.appendChild(descriptionGroup);
+  detailedView.appendChild(descriptionGroup);
 
   const row = document.createElement("div");
   row.className = "row g-2 align-items-end";
@@ -1442,12 +2699,57 @@ function renderActionItem(action) {
   buttonCol.appendChild(saveButton);
   row.appendChild(buttonCol);
 
-  li.appendChild(row);
+  detailedView.appendChild(row);
+  li.appendChild(detailedView);
+
+  const compactView = document.createElement("div");
+  compactView.className = "action-compact-view";
+
+  const compactMain = document.createElement("div");
+  compactMain.className = "action-compact-main";
+  const compactHeader = document.createElement("div");
+  compactHeader.className = "action-compact-header";
+  const statusPill = document.createElement("span");
+  statusPill.className = "action-status-pill";
+  statusPill.dataset.status = statusValue;
+  statusPill.textContent = action.status_display || getStatusLabel(statusValue) || statusValue;
+  const compactStart = document.createElement("div");
+  compactStart.className = "action-compact-start text-uppercase text-muted small";
+  compactStart.textContent = action.starts_at_display;
+  compactHeader.appendChild(statusPill);
+  compactHeader.appendChild(compactStart);
+  const compactDescription = document.createElement("div");
+  compactDescription.className = "action-compact-description";
+  compactDescription.textContent = action.description || "Без описания";
+  const compactMeta = document.createElement("div");
+  compactMeta.className = "action-compact-meta text-muted small";
+
+  compactMain.appendChild(compactHeader);
+  compactMain.appendChild(compactDescription);
+  compactMain.appendChild(compactMeta);
+  compactView.appendChild(compactMain);
+
+  const compactControls = document.createElement("div");
+  compactControls.className = "action-compact-controls d-flex align-items-start gap-2";
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.className = "btn btn-outline-primary btn-sm action-open-detailed";
+  openButton.dataset.actionId = action.id;
+  openButton.textContent = "Редактировать";
+  compactControls.appendChild(openButton);
+  compactControls.appendChild(makeDeleteLink());
+  compactView.appendChild(compactControls);
+
+  li.appendChild(compactView);
+  refreshActionCompactView(li);
   return li;
 }
 
 function updateActionItem(actionItem, action) {
   actionItem.dataset.actionId = action.id;
+  if (action.starts_at) {
+    actionItem.dataset.startsAt = action.starts_at;
+  }
   const startSpan = actionItem.querySelector(".action-starts-at");
   if (startSpan) {
     startSpan.textContent = action.starts_at_display;
@@ -1479,37 +2781,35 @@ function updateActionItem(actionItem, action) {
       }
     }
   }
+  const statusSelect = actionItem.querySelector(".action-status");
+  if (statusSelect) {
+    statusSelect.value = action.status || DEFAULT_ACTION_STATUS;
+  }
+  const notifyInput = actionItem.querySelector(".action-notify-before");
+  if (notifyInput) {
+    if (action.notify_before_value === null || action.notify_before_value === undefined) {
+      notifyInput.value = "";
+    } else {
+      notifyInput.value = action.notify_before_value;
+    }
+  }
+  const notifyUnitSelect = actionItem.querySelector(".action-notify-unit");
+  if (notifyUnitSelect) {
+    notifyUnitSelect.value = action.notify_before_unit || DEFAULT_NOTIFY_UNIT;
+  }
+  const statusPill = actionItem.querySelector(".action-status-pill");
+  if (statusPill) {
+    statusPill.dataset.status = action.status || DEFAULT_ACTION_STATUS;
+    statusPill.textContent =
+      action.status_display || getStatusLabel(statusPill.dataset.status) || statusPill.dataset.status;
+  }
+  refreshActionCompactView(actionItem);
 }
 
 function saveAction(actionItem) {
   clearActionMessage();
-  const actionId = actionItem.dataset.actionId;
-  const descriptionField = actionItem.querySelector(".action-description");
-  const remindField = actionItem.querySelector(".action-remind-at");
-  const recurrenceSelect = actionItem.querySelector(".action-recurrence");
-  const customWrapper = actionItem.querySelector(".custom-interval-wrapper");
-  const customInput = customWrapper ? customWrapper.querySelector(".action-custom-interval") : null;
-
-  const payload = {
-    description: descriptionField ? descriptionField.value.trim() : "",
-    remind_at: remindField && remindField.value ? remindField.value : null,
-    recurrence: recurrenceSelect ? recurrenceSelect.value : "none",
-    custom_interval_days: customInput && customInput.value ? customInput.value : null,
-  };
-
-  sendActionRequest(`/deals/${dealId}/actions/${actionId}/update/`, payload)
-    .then(({ ok, data }) => {
-      if (!ok) {
-        const message = data && (data.error || formatErrors(data.errors));
-        showActionMessage(message || "Не удалось сохранить действие.");
-        return;
-      }
-      updateActionItem(actionItem, data.action);
-      showActionMessage("Действие обновлено.", "success");
-    })
-    .catch(() => {
-      showActionMessage("Не удалось сохранить действие.");
-    });
+  const payload = buildActionPayload(actionItem);
+  sendActionUpdate(actionItem, payload);
 }
 
 function deleteAction(actionItem) {
@@ -1541,6 +2841,48 @@ function attachActionEvents(actionItem) {
       const wrapper = actionItem.querySelector(".custom-interval-wrapper");
       const input = wrapper ? wrapper.querySelector(".action-custom-interval") : null;
       toggleCustomInterval(wrapper, recurrenceSelect.value, input);
+      refreshActionCompactView(actionItem);
+    });
+  }
+  const statusSelect = actionItem.querySelector(".action-status");
+  if (statusSelect) {
+    statusSelect.addEventListener("change", () => {
+      if (statusSelect.value === STATUS_OVERDUE) {
+        actionItem.dataset.overdueUpdated = "done";
+      } else {
+        actionItem.dataset.overdueUpdated = "";
+      }
+      refreshActionCompactView(actionItem);
+    });
+  }
+  const descriptionField = actionItem.querySelector(".action-description");
+  if (descriptionField) {
+    descriptionField.addEventListener("input", () => {
+      refreshActionCompactView(actionItem);
+    });
+  }
+  const remindInput = actionItem.querySelector(".action-remind-at");
+  if (remindInput) {
+    remindInput.addEventListener("change", () => {
+      refreshActionCompactView(actionItem);
+    });
+  }
+  const customInput = actionItem.querySelector(".action-custom-interval");
+  if (customInput) {
+    customInput.addEventListener("input", () => {
+      refreshActionCompactView(actionItem);
+    });
+  }
+  const notifyInput = actionItem.querySelector(".action-notify-before");
+  if (notifyInput) {
+    notifyInput.addEventListener("input", () => {
+      refreshActionCompactView(actionItem);
+    });
+  }
+  const notifyUnitSelect = actionItem.querySelector(".action-notify-unit");
+  if (notifyUnitSelect) {
+    notifyUnitSelect.addEventListener("change", () => {
+      refreshActionCompactView(actionItem);
     });
   }
   const saveButton = actionItem.querySelector(".save-action-btn");
@@ -1549,13 +2891,23 @@ function attachActionEvents(actionItem) {
       saveAction(actionItem);
     });
   }
-  const deleteLink = actionItem.querySelector(".action-delete");
-  if (deleteLink) {
+  actionItem.querySelectorAll(".action-delete").forEach((deleteLink) => {
     deleteLink.addEventListener("click", (event) => {
       event.preventDefault();
       deleteAction(actionItem);
     });
+  });
+  const openDetailedButton = actionItem.querySelector(".action-open-detailed");
+  if (openDetailedButton) {
+    openDetailedButton.addEventListener("click", () => {
+      applyActionViewMode("detailed");
+      const focusTarget = actionItem.querySelector(".action-description");
+      if (focusTarget) {
+        focusTarget.focus();
+      }
+    });
   }
+  refreshActionCompactView(actionItem);
 }
 
 document.querySelectorAll("#deal-actions-list .action-item").forEach((item) => {
@@ -1566,9 +2918,25 @@ document.getElementById("create-action-btn").addEventListener("click", function(
   clearActionMessage();
   const descriptionField = newActionForm.querySelector('textarea[name="description"]');
   const remindField = newActionForm.querySelector('input[name="remind_at"]');
+  const statusField = newActionForm.querySelector('select[name="status"]');
+  const notifyBeforeField = newActionForm.querySelector('input[name="notify_before_value"]');
+  const notifyUnitField = newActionForm.querySelector('select[name="notify_before_unit"]');
+  let notifyValue = null;
+  if (notifyBeforeField && notifyBeforeField.value !== "") {
+    const parsedNotify = Number(notifyBeforeField.value);
+    if (!Number.isNaN(parsedNotify) && parsedNotify > 0) {
+      notifyValue = parsedNotify;
+    }
+  }
   const payload = {
     description: descriptionField ? descriptionField.value.trim() : "",
     remind_at: remindField && remindField.value ? remindField.value : null,
+    status: statusField ? statusField.value || DEFAULT_ACTION_STATUS : DEFAULT_ACTION_STATUS,
+    notify_before_value: notifyValue,
+    notify_before_unit:
+      notifyValue !== null
+        ? (notifyUnitField ? notifyUnitField.value || DEFAULT_NOTIFY_UNIT : DEFAULT_NOTIFY_UNIT)
+        : null,
     recurrence: newActionRecurrence.value,
     custom_interval_days: newActionCustomInput && newActionCustomInput.value ? newActionCustomInput.value : null,
   };
@@ -1596,6 +2964,7 @@ document.getElementById("create-action-btn").addEventListener("click", function(
       removeNoActionsPlaceholder();
       actionsList.appendChild(item);
       attachActionEvents(item);
+      checkActionsForOverdue();
 
       const modal = bootstrap.Modal.getInstance(newActionModalElement);
       if (modal) {
@@ -1603,6 +2972,12 @@ document.getElementById("create-action-btn").addEventListener("click", function(
       }
 
       newActionForm.reset();
+      if (statusField) {
+        statusField.value = DEFAULT_ACTION_STATUS;
+      }
+      if (notifyUnitField) {
+        notifyUnitField.value = DEFAULT_NOTIFY_UNIT;
+      }
       toggleNewActionCustom();
       showActionMessage("Действие создано.", "success");
     })
@@ -1630,11 +3005,21 @@ newActionModalElement.addEventListener("hidden.bs.modal", () => {
     newActionErrors.textContent = "";
   }
   newActionForm.reset();
+  const statusField = newActionForm.querySelector('select[name="status"]');
+  if (statusField) {
+    statusField.value = DEFAULT_ACTION_STATUS;
+  }
+  const notifyUnitField = newActionForm.querySelector('select[name="notify_before_unit"]');
+  if (notifyUnitField) {
+    notifyUnitField.value = DEFAULT_NOTIFY_UNIT;
+  }
   toggleNewActionCustom();
 });
 
 // Ensure placeholder visibility on load
 ensureNoActionsPlaceholder();
+checkActionsForOverdue();
+setInterval(checkActionsForOverdue, 60000);
 </script>
 
 {% endblock %}
