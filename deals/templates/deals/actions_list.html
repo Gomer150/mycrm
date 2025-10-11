@@ -1,0 +1,74 @@
+{% extends "deals/base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Действия</h1>
+<div class="row g-3 align-items-end mb-4">
+  <div class="col-sm-4 col-md-3">
+    <label for="action-date" class="form-label">Дата</label>
+    <input type="date" class="form-control" id="action-date" value="{{ selected_date|date:'Y-m-d' }}">
+  </div>
+  <div class="col-auto ms-auto">
+    <a href="{% url 'actions_list' %}?view=calendar&year={{ selected_date|date:'Y' }}&month={{ selected_date|date:'n' }}" class="btn btn-outline-secondary">Календарь</a>
+  </div>
+</div>
+
+{% if actions %}
+<table class="table table-hover align-middle">
+  <thead>
+    <tr>
+      <th style="width: 110px;">Время</th>
+      <th>Сделка</th>
+      <th>Описание</th>
+      <th style="width: 160px;">Ответственный</th>
+      <th style="width: 140px;">Статус</th>
+      <th style="width: 120px;"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for action in actions %}
+    <tr>
+      <td>{{ action.local_time|time:"H:i" }}</td>
+      <td><a href="{% url 'deal_edit' action.deal.pk %}">{{ action.deal.title }}</a></td>
+      <td class="text-muted">{{ action.description|default:"—" }}</td>
+      <td>{{ action.owner_display }}</td>
+      <td><span class="badge {{ action.status_badge_class }}">{{ action.get_status_display }}</span></td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'deal_edit' action.deal.pk %}">Открыть</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="alert alert-info" role="alert">
+  На выбранную дату действий нет.
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.getElementById('action-date');
+    if (!dateInput) {
+      return;
+    }
+    const goToDate = () => {
+      const value = dateInput.value;
+      if (!value) {
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'list');
+      url.searchParams.set('date', value);
+      window.location.href = url.toString();
+    };
+    dateInput.addEventListener('change', goToDate);
+    dateInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        goToDate();
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -39,16 +39,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Моя любимая CRM</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/">Моя любимая CRM</a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto">
+    <a class="navbar-brand" href="{% url 'deals_list' %}">Моя любимая CRM</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Переключить навигацию">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      {% with current_view=request.resolver_match.url_name %}
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link {% if current_view == 'deals_list' %}active{% endif %}" href="{% url 'deals_list' %}">Сделки</a></li>
+        <li class="nav-item"><a class="nav-link {% if current_view == 'actions_list' %}active{% endif %}" href="{% url 'actions_list' %}">Действия</a></li>
+        <li class="nav-item"><a class="nav-link {% if current_view == 'clients_list' %}active{% endif %}" href="{% url 'clients_list' %}">Клиенты</a></li>
+        <li class="nav-item"><a class="nav-link {% if current_view == 'contacts_list' %}active{% endif %}" href="{% url 'contacts_list' %}">Контакты</a></li>
+      </ul>
+      {% endwith %}
+      <ul class="navbar-nav ms-auto align-items-lg-center">
         {% if user.is_authenticated %}
-        <li class="nav-item"> <button id="toggle-theme" class="btn btn-sm btn-outline-light ms-2">🌙</button> </li>
-        <li class="nav-item"><a class="nav-link" href="#">{{ user.username }}</a></li>
+        <li class="nav-item me-lg-2">
+          <button id="toggle-theme" class="btn btn-sm btn-outline-light w-100">🌙</button>
+        </li>
+        <li class="nav-item"><span class="navbar-text me-lg-3">{{ user.username }}</span></li>
         <li class="nav-item"><a class="nav-link" href="/admin/logout/">Logout</a></li>
         {% else %}
         <li class="nav-item"><a class="nav-link" href="/admin/login/">Login</a></li>
@@ -67,22 +81,28 @@
 
 <script>
 // при загрузке читаем сохранённую тему
+  const themeButton = document.getElementById("toggle-theme");
   const savedTheme = localStorage.getItem("theme");
   if (savedTheme) {
     document.documentElement.setAttribute("data-bs-theme", savedTheme);
-    document.getElementById("toggle-theme").textContent = savedTheme === "dark" ? "🌙" : "🌞";
+    if (themeButton) {
+      themeButton.textContent = savedTheme === "dark" ? "🌙" : "🌞";
+    }
   }
 
-  document.getElementById("toggle-theme").addEventListener("click", () => {
-    let html = document.documentElement;
-    let current = html.getAttribute("data-bs-theme") || "light";
-    let next = current === "dark" ? "light" : "dark";
+  if (themeButton) {
+    themeButton.addEventListener("click", () => {
+      const html = document.documentElement;
+      const current = html.getAttribute("data-bs-theme") || "light";
+      const next = current === "dark" ? "light" : "dark";
 
-    html.setAttribute("data-bs-theme", next);
-    localStorage.setItem("theme", next);
+      html.setAttribute("data-bs-theme", next);
+      localStorage.setItem("theme", next);
 
-    document.getElementById("toggle-theme").textContent = next === "dark" ? "🌙" : "🌞";
-  });
+      themeButton.textContent = next === "dark" ? "🌙" : "🌞";
+    });
+  }
 </script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

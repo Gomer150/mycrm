@@ -68,6 +68,10 @@ class Deal(models.Model):
         blank=True,
         verbose_name="Стоимость сделки",
     )
+    description = models.TextField(
+        blank=True,
+        verbose_name="Описание сделки",
+    )
 
     def save(self, *args, **kwargs):
         # Автогенерация имени сделки

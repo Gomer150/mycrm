@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, time
+import calendar
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonRespon
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str
+from django.db.models import Count
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import DealActionForm, DealForm, DocumentUploadForm
@@ -66,6 +68,27 @@ def _mark_overdue_actions(queryset):
             DealAction.Status.CANCELLED,
         ]
     ).update(status=DealAction.Status.OVERDUE)
+
+
+STATUS_BADGE_CLASSES = {
+    DealAction.Status.SCHEDULED: "text-bg-primary",
+    DealAction.Status.IN_PROGRESS: "text-bg-warning",
+    DealAction.Status.COMPLETED: "text-bg-success",
+    DealAction.Status.OVERDUE: "text-bg-danger",
+    DealAction.Status.CANCELLED: "text-bg-secondary",
+}
+
+
+def _decorate_actions(actions):
+    for action in actions:
+        action.status_badge_class = STATUS_BADGE_CLASSES.get(action.status, "text-bg-secondary")
+        owner = action.deal.owner
+        action.owner_display = owner.get_full_name() or owner.username
+        local_dt = timezone.localtime(action.starts_at)
+        action.local_datetime = local_dt
+        action.local_date = local_dt.date()
+        action.local_time = local_dt.time()
+    return actions
 
 
 def _serialize_action(action):
@@ -148,6 +171,7 @@ def deal_edit(request, pk):
         deal.title = request.POST.get("title")
         deal.stage_id = request.POST.get("stage_id")
         deal.client_id = request.POST.get("client_id") or None
+        deal.description = (request.POST.get("description") or "").strip()
         cost_raw = request.POST.get("cost")
         if cost_raw in ("", None):
             deal.cost = None
@@ -478,7 +502,7 @@ def deals_list(request):
 
     _mark_overdue_actions(actions_scope)
 
-    todays_actions = (
+    todays_actions = list(
         actions_scope
         .filter(starts_at__range=(day_start, day_end))
         .exclude(status__in=[DealAction.Status.CANCELLED, DealAction.Status.COMPLETED])
@@ -486,16 +510,7 @@ def deals_list(request):
         .order_by("starts_at")
     )
 
-    status_badge_map = {
-        DealAction.Status.SCHEDULED: "text-bg-primary",
-        DealAction.Status.IN_PROGRESS: "text-bg-warning",
-        DealAction.Status.COMPLETED: "text-bg-success",
-        DealAction.Status.OVERDUE: "text-bg-danger",
-        DealAction.Status.CANCELLED: "text-bg-secondary",
-    }
-
-    for action in todays_actions:
-        action.status_badge_class = status_badge_map.get(action.status, "text-bg-secondary")
+    _decorate_actions(todays_actions)
 
     context = {
         "deals": deals,
@@ -503,6 +518,129 @@ def deals_list(request):
         "today_date": today,
     }
     return render(request, "deals/deals_list.html", context)
+
+
+@login_required
+def actions_list(request):
+    if request.user.is_superuser:
+        actions_scope = DealAction.objects.select_related('deal', 'deal__owner')
+    else:
+        actions_scope = DealAction.objects.select_related('deal', 'deal__owner').filter(deal__owner=request.user)
+
+    view_type = request.GET.get('view', 'list')
+    today = timezone.localdate()
+    date_param = request.GET.get('date')
+    try:
+        selected_date = datetime.strptime(date_param, '%Y-%m-%d').date() if date_param else today
+    except (ValueError, TypeError):
+        selected_date = today
+
+    if view_type == 'calendar':
+        month_param = request.GET.get('month')
+        year_param = request.GET.get('year')
+        try:
+            month = int(month_param) if month_param else selected_date.month
+            year = int(year_param) if year_param else selected_date.year
+        except (TypeError, ValueError):
+            month, year = selected_date.month, selected_date.year
+        if not 1 <= month <= 12:
+            month = selected_date.month
+        if year < 1:
+            year = selected_date.year
+
+        calendar_date = datetime(year, month, 1).date()
+        tz = timezone.get_current_timezone()
+        _, last_day = calendar.monthrange(year, month)
+        month_start = timezone.make_aware(datetime.combine(calendar_date, time.min), tz)
+        month_end_date = datetime(year, month, last_day).date()
+        month_end = timezone.make_aware(datetime.combine(month_end_date, time.max), tz)
+
+        _mark_overdue_actions(actions_scope.filter(starts_at__lte=month_end))
+        month_actions = list(actions_scope.filter(starts_at__range=(month_start, month_end)).order_by('starts_at'))
+        _decorate_actions(month_actions)
+
+        actions_by_day = {}
+        for action in month_actions:
+            actions_by_day.setdefault(action.local_date, []).append(action)
+        for day_actions in actions_by_day.values():
+            day_actions.sort(key=lambda a: a.local_time)
+
+        cal = calendar.Calendar(firstweekday=0)
+        month_weeks = cal.monthdatescalendar(year, month)
+        today_local = timezone.localdate()
+        weeks = []
+        for week in month_weeks:
+            cells = []
+            for day in week:
+                cells.append({
+                    'date': day,
+                    'is_current_month': day.month == month,
+                    'is_today': day == today_local,
+                    'actions': actions_by_day.get(day, [])
+                })
+            weeks.append(cells)
+
+        month_options = [(m, calendar.month_name[m]) for m in range(1, 13)]
+        current_year = today.year
+        year_range_start = min(current_year - 5, year - 2)
+        year_range_end = max(current_year + 5, year + 2)
+        year_options = list(range(year_range_start, year_range_end + 1))
+
+        prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+        next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+
+        context = {
+            'view_type': 'calendar',
+            'weeks': weeks,
+            'calendar_month': month,
+            'calendar_year': year,
+            'month_name': calendar.month_name[month],
+            'month_options': month_options,
+            'year_options': year_options,
+            'selected_date': selected_date,
+            'prev_month': prev_month,
+            'prev_year': prev_year,
+            'next_month': next_month,
+            'next_year': next_year,
+            'day_names': ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+        }
+        return render(request, 'deals/actions_calendar.html', context)
+
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(selected_date, time.max), tz)
+
+    _mark_overdue_actions(actions_scope.filter(starts_at__lte=day_end))
+    day_actions = list(actions_scope.filter(starts_at__range=(day_start, day_end)).order_by('starts_at'))
+    _decorate_actions(day_actions)
+
+    context = {
+        'actions': day_actions,
+        'selected_date': selected_date,
+        'view_type': 'list',
+    }
+    return render(request, 'deals/actions_list.html', context)
+
+
+@login_required
+def clients_list(request):
+    clients = Company.objects.filter(type='client')
+    if not request.user.is_superuser:
+        clients = clients.filter(deals__owner=request.user)
+    clients = (
+        clients.annotate(deals_total=Count('deals', distinct=True))
+        .order_by('name')
+    )
+    return render(request, 'deals/clients_list.html', {'clients': clients})
+
+
+@login_required
+def contacts_list(request):
+    contacts = Contact.objects.select_related('company', 'owner').order_by('name')
+    if not request.user.is_superuser:
+        contacts = contacts.filter(owner=request.user)
+    return render(request, 'deals/contacts_list.html', {'contacts': contacts})
+
 
 @login_required
 def deal_detail(request, pk):

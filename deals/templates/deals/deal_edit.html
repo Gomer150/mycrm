@@ -456,6 +456,11 @@
     </div>
   </div>
 
+  <div class="mb-3">
+    <label for="description" class="form-label">Описание сделки</label>
+    <textarea class="form-control" id="description" name="description" rows="3">{{ deal.description|default_if_none:'' }}</textarea>
+  </div>
+
   <div class="deal-section deal-section-client">
     <div class="section-heading">
       <div>

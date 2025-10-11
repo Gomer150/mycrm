@@ -1,0 +1,36 @@
+{% extends "deals/base.html" %}
+{% block content %}
+<h1 class="mb-4">Контакты</h1>
+{% if contacts %}
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Имя</th>
+        <th>Компания</th>
+        <th>Должность</th>
+        <th>Телефон</th>
+        <th>Email</th>
+        <th>Ответственный</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for contact in contacts %}
+      <tr>
+        <td>{{ contact.name }}</td>
+        <td>{{ contact.company.name }}</td>
+        <td>{{ contact.position|default:"—" }}</td>
+        <td>{{ contact.phone|default:"—" }}</td>
+        <td>{{ contact.email|default:"—" }}</td>
+        <td>{{ contact.owner.get_full_name|default:contact.owner.username }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+  Контактов пока нет.
+</div>
+{% endif %}
+{% endblock %}
