@@ -9,13 +9,13 @@ class DocumentUploadForm(forms.Form):
 
 class DealForm(forms.ModelForm):
     companies = forms.ModelMultipleChoiceField(
-        queryset=Company.objects.all(),
+        queryset=Company.objects.none(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
         label="Компании",
     )
     contacts = forms.ModelMultipleChoiceField(
-        queryset=Contact.objects.all(),
+        queryset=Contact.objects.none(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
         label="Контакты",
@@ -24,6 +24,20 @@ class DealForm(forms.ModelForm):
     class Meta:
         model = Deal
         fields = ["title", "stage", "owner", "cost", "description", "companies", "contacts"]
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        company_qs = Company.objects.all().order_by("name")
+        contact_qs = Contact.objects.all().order_by("name")
+
+        if user and not getattr(user, "is_superuser", False):
+            company_qs = company_qs.filter(deals__owner=user).distinct()
+            contact_qs = contact_qs.filter(owner=user)
+
+        self.fields["companies"].queryset = company_qs
+        self.fields["contacts"].queryset = contact_qs
 
 
 class DealActionForm(forms.ModelForm):

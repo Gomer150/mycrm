@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str
@@ -51,6 +51,8 @@ def _get_action_form_data(request):
 
     if "recurrence" not in data:
         data["recurrence"] = DealAction.Recurrence.NONE
+    if "status" not in data:
+        data["status"] = DealAction.Status.SCHEDULED
     if "notify_before_unit" not in data and data.get("notify_before_value"):
         data["notify_before_unit"] = DealAction.NotifyUnit.MINUTES
 
@@ -122,7 +124,22 @@ def _serialize_action(action):
     return payload
 
 
-def _serialize_contact(contact):
+def _serialize_contact(contact, primary_company_id=None):
+    companies_qs = getattr(contact, '_prefetched_objects_cache', {}).get('companies')
+    if companies_qs is None:
+        companies_qs = contact.companies.all()
+    company_ids = [company.id for company in companies_qs]
+    companies_payload = [
+        {"id": company.id, "name": company.name}
+        for company in companies_qs
+    ]
+    if primary_company_id is None:
+        primary_company_id = company_ids[0] if company_ids else None
+    primary_company_name = None
+    for company in companies_payload:
+        if company["id"] == primary_company_id:
+            primary_company_name = company["name"]
+            break
     return {
         "id": contact.id,
         "name": contact.name,
@@ -130,8 +147,102 @@ def _serialize_contact(contact):
         "phone": contact.phone or "",
         "email": contact.email or "",
         "messengers": contact.messengers or "",
-        "company_id": contact.company_id,
+        "company_id": primary_company_id,
+        "primary_company_name": primary_company_name or "",
+        "company_ids": company_ids,
+        "companies": companies_payload,
     }
+
+
+def _unique_int_list(values):
+    if not values:
+        return []
+    normalized = []
+    seen = set()
+    for value in values:
+        try:
+            integer = int(value)
+        except (TypeError, ValueError):
+            continue
+        if integer in seen:
+            continue
+        seen.add(integer)
+        normalized.append(integer)
+    return normalized
+
+
+def _extract_company_ids(payload):
+    if payload is None:
+        return None
+    keys = ("company_ids", "companies", "company_ids[]", "companies[]")
+    raw = None
+    if isinstance(payload, QueryDict):
+        for key in keys:
+            if key in payload:
+                raw = payload.getlist(key)
+                break
+        if raw is None:
+            return None
+    else:
+        for key in ("company_ids", "companies"):
+            if key in payload:
+                raw = payload[key]
+                break
+        if raw is None:
+            return None
+    if isinstance(raw, (list, tuple, set)):
+        candidates = list(raw)
+    elif raw in (None, ""):
+        candidates = []
+    elif isinstance(raw, str):
+        candidates = [item.strip() for item in raw.split(",") if item.strip()]
+    else:
+        candidates = [raw]
+    return _unique_int_list(candidates)
+
+
+def _extract_primary_company_id(payload):
+    if payload is None:
+        return None
+    keys = ("primary_company_id", "primary_company")
+    value = None
+    if isinstance(payload, QueryDict):
+        for key in keys:
+            if key in payload:
+                value = payload.get(key)
+                break
+    else:
+        for key in keys:
+            if key in payload:
+                value = payload[key]
+                break
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _resolve_primary_company_id(primary_company_id, company_ids, fallback=None):
+    if not company_ids:
+        return None
+    if primary_company_id in company_ids:
+        return primary_company_id
+    if fallback in company_ids:
+        return fallback
+    return company_ids[0]
+
+
+def _ordered_companies_by_ids(company_ids):
+    if not company_ids:
+        return [], []
+    companies = list(Company.objects.filter(id__in=company_ids))
+    mapping = {company.id: company for company in companies}
+    ordered = [mapping[cid] for cid in company_ids if cid in mapping]
+    missing = [cid for cid in company_ids if cid not in mapping]
+    return ordered, missing
+
 
 
 def index(request):
@@ -158,7 +269,7 @@ def deal_edit(request, pk):
         return HttpResponseForbidden("Нет доступа")
     stages = Stage.objects.all()
     companies = Company.objects.all()  # 👈 добавляем список клиентов
-    contacts = Contact.objects.filter(company=deal.client).order_by("name") if deal.client else Contact.objects.none()
+    contacts = Contact.objects.filter(companies=deal.client).prefetch_related('companies').order_by("name") if deal.client else Contact.objects.none()
     _mark_overdue_actions(deal.actions.all())
     actions = deal.actions.all()
     action_form = DealActionForm()
@@ -201,7 +312,7 @@ def deal_edit(request, pk):
         for company in companies
     ]
 
-    contacts_data = [_serialize_contact(contact) for contact in contacts]
+    contacts_data = [_serialize_contact(contact, deal.client_id) for contact in contacts]
     status_choices = DealAction.Status.choices
     status_options = [{"value": value, "label": label} for value, label in status_choices]
     notify_units_choices = DealAction.NotifyUnit.choices
@@ -342,7 +453,7 @@ def deal_contact_create(request, pk):
         except (json.JSONDecodeError, UnicodeDecodeError):
             payload = {}
     else:
-        payload = request.POST.dict()
+        payload = request.POST
 
     def _normalize(value):
         if value is None:
@@ -350,27 +461,61 @@ def deal_contact_create(request, pk):
         value = str(value).strip()
         return value or None
 
-    name = _normalize(payload.get("name"))
-    if not name:
-        return JsonResponse({"errors": {"name": ["Укажите имя контакта."]}}, status=400)
+    contact_id_raw = _normalize(payload.get("contact_id"))
+    contact = None
+    is_existing_contact = False
+    if contact_id_raw:
+        try:
+            contact_identifier = int(contact_id_raw)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "Контакт не найден."}, status=404)
+        contact = Contact.objects.filter(pk=contact_identifier).first()
+        if contact is None:
+            return JsonResponse({"error": "Контакт не найден."}, status=404)
+        is_existing_contact = True
+    else:
+        name = _normalize(payload.get("name"))
+        if not name:
+            return JsonResponse({"errors": {"name": ["Укажите имя контакта."]}}, status=400)
+        contact = Contact(
+            owner=deal.owner,
+            name=name,
+            position=_normalize(payload.get("position")) or "",
+            phone=_normalize(payload.get("phone")) or "",
+            email=_normalize(payload.get("email")) or "",
+            messengers=_normalize(payload.get("messengers")) or "",
+        )
+        try:
+            contact.full_clean()
+        except ValidationError as exc:
+            return JsonResponse({"errors": exc.message_dict}, status=400)
+        contact.save()
 
-    contact = Contact(
-        company=deal.client,
-        owner=deal.owner,
-        name=name,
-        position=_normalize(payload.get("position")) or "",
-        phone=_normalize(payload.get("phone")) or "",
-        email=_normalize(payload.get("email")) or "",
-        messengers=_normalize(payload.get("messengers")) or "",
-    )
+    company_ids = _extract_company_ids(payload)
+    if company_ids is None:
+        company_ids = []
+    if deal.client_id and deal.client_id not in company_ids:
+        company_ids.insert(0, deal.client_id)
+    company_ids = _unique_int_list(company_ids)
+    if not company_ids:
+        return JsonResponse({"errors": {"company_ids": ["Укажите хотя бы одну компанию для контакта."]}}, status=400)
 
-    try:
-        contact.full_clean()
-    except ValidationError as exc:
-        return JsonResponse({"errors": exc.message_dict}, status=400)
+    companies, missing = _ordered_companies_by_ids(company_ids)
+    if missing:
+        return JsonResponse({"errors": {"company_ids": [f"Компания с ID {missing[0]} не найдена."]}}, status=400)
 
-    contact.save()
-    return JsonResponse({"contact": _serialize_contact(contact)}, status=201)
+    if is_existing_contact:
+        contact.companies.add(*companies)
+    else:
+        contact.companies.set(companies)
+
+    contact = Contact.objects.prefetch_related('companies').get(pk=contact.pk)
+    actual_company_ids = [company.id for company in contact.companies.all()]
+    primary_company_id = _extract_primary_company_id(payload)
+    primary_company_id = _resolve_primary_company_id(primary_company_id, actual_company_ids, fallback=deal.client_id)
+
+    contact_data = _serialize_contact(contact, primary_company_id)
+    return JsonResponse({"contact": contact_data}, status=201)
 
 
 @login_required
@@ -380,8 +525,8 @@ def deal_contact_update(request, pk, contact_id):
     if not (request.user.is_superuser or deal.owner == request.user):
         return JsonResponse({"error": "Нет доступа"}, status=403)
 
-    contact = get_object_or_404(Contact, pk=contact_id)
-    if deal.client_id and contact.company_id != deal.client_id:
+    contact = get_object_or_404(Contact.objects.prefetch_related('companies'), pk=contact_id)
+    if deal.client_id and not contact.companies.filter(pk=deal.client_id).exists():
         return JsonResponse({"error": "Контакт не относится к выбранному клиенту."}, status=400)
 
     content_type = request.META.get("CONTENT_TYPE", "")
@@ -391,7 +536,7 @@ def deal_contact_update(request, pk, contact_id):
         except (json.JSONDecodeError, UnicodeDecodeError):
             payload = {}
     else:
-        payload = request.POST.dict()
+        payload = request.POST
 
     def _normalize(value):
         if value is None:
@@ -409,13 +554,28 @@ def deal_contact_update(request, pk, contact_id):
     contact.email = _normalize(payload.get("email")) or ""
     contact.messengers = _normalize(payload.get("messengers")) or ""
 
+    company_ids = _extract_company_ids(payload)
+    if company_ids is not None:
+        company_ids = _unique_int_list(company_ids)
+        if not company_ids:
+            return JsonResponse({"errors": {"company_ids": ["Укажите хотя бы одну компанию для контакта."]}}, status=400)
+        companies, missing = _ordered_companies_by_ids(company_ids)
+        if missing:
+            return JsonResponse({"errors": {"company_ids": [f"Компания с ID {missing[0]} не найдена."]}}, status=400)
+        contact.companies.set(companies)
+
     try:
         contact.full_clean()
     except ValidationError as exc:
         return JsonResponse({"errors": exc.message_dict}, status=400)
 
     contact.save()
-    return JsonResponse({"contact": _serialize_contact(contact)})
+    contact = Contact.objects.prefetch_related('companies').get(pk=contact.pk)
+    actual_company_ids = [company.id for company in contact.companies.all()]
+    primary_company_id = _extract_primary_company_id(payload)
+    primary_company_id = _resolve_primary_company_id(primary_company_id, actual_company_ids, fallback=deal.client_id)
+
+    return JsonResponse({"contact": _serialize_contact(contact, primary_company_id)})
 
 
 @login_required
@@ -425,11 +585,17 @@ def deal_contact_delete(request, pk, contact_id):
     if not (request.user.is_superuser or deal.owner == request.user):
         return JsonResponse({"error": "Нет доступа"}, status=403)
 
-    contact = get_object_or_404(Contact, pk=contact_id)
-    if deal.client_id and contact.company_id != deal.client_id:
+    contact = get_object_or_404(Contact.objects.prefetch_related('companies'), pk=contact_id)
+    if deal.client_id and not contact.companies.filter(pk=deal.client_id).exists():
         return JsonResponse({"error": "Контакт не относится к выбранному клиенту."}, status=400)
 
-    contact.delete()
+    if deal.client_id:
+        contact.companies.remove(deal.client)
+
+    if contact.companies.exists():
+        contact.save(update_fields=[])
+    else:
+        contact.delete()
     return JsonResponse({"status": "ok"})
 
 
@@ -437,8 +603,9 @@ def deal_contact_delete(request, pk, contact_id):
 @require_http_methods(["GET"])
 def company_contacts(request, pk):
     company = get_object_or_404(Company, pk=pk)
-    contacts = company.contacts.all().order_by("name")
-    return JsonResponse({"contacts": [_serialize_contact(contact) for contact in contacts]})
+    contacts = company.contacts.prefetch_related('companies').order_by("name")
+    payload = [_serialize_contact(contact, company.id) for contact in contacts]
+    return JsonResponse({"contacts": payload})
 
 
 @login_required
@@ -535,6 +702,30 @@ def actions_list(request):
     except (ValueError, TypeError):
         selected_date = today
 
+    start_param = request.GET.get('start_date')
+    end_param = request.GET.get('end_date')
+    status_param = request.GET.get('status')
+
+    valid_statuses = {choice[0] for choice in DealAction.Status.choices}
+    selected_status = status_param if status_param in valid_statuses else 'all'
+
+    if selected_status != 'all':
+        actions_scope = actions_scope.filter(status=selected_status)
+
+    def _parse_date(value, fallback):
+        if not value:
+            return fallback
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return fallback
+
+    start_date = _parse_date(start_param, selected_date)
+    end_date = _parse_date(end_param, start_date)
+
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
+
     if view_type == 'calendar':
         month_param = request.GET.get('month')
         year_param = request.GET.get('year')
@@ -603,21 +794,27 @@ def actions_list(request):
             'next_month': next_month,
             'next_year': next_year,
             'day_names': ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+            'selected_status': selected_status,
+            'status_options': DealAction.Status.choices,
         }
         return render(request, 'deals/actions_calendar.html', context)
 
     tz = timezone.get_current_timezone()
-    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
-    day_end = timezone.make_aware(datetime.combine(selected_date, time.max), tz)
+    range_start = timezone.make_aware(datetime.combine(start_date, time.min), tz)
+    range_end = timezone.make_aware(datetime.combine(end_date, time.max), tz)
 
-    _mark_overdue_actions(actions_scope.filter(starts_at__lte=day_end))
-    day_actions = list(actions_scope.filter(starts_at__range=(day_start, day_end)).order_by('starts_at'))
-    _decorate_actions(day_actions)
+    _mark_overdue_actions(actions_scope.filter(starts_at__lte=range_end))
+    range_actions = list(actions_scope.filter(starts_at__range=(range_start, range_end)).order_by('starts_at'))
+    _decorate_actions(range_actions)
 
     context = {
-        'actions': day_actions,
-        'selected_date': selected_date,
+        'actions': range_actions,
+        'start_date': start_date,
+        'end_date': end_date,
         'view_type': 'list',
+        'selected_date': start_date,
+        'selected_status': selected_status,
+        'status_options': DealAction.Status.choices,
     }
     return render(request, 'deals/actions_list.html', context)
 
@@ -636,7 +833,7 @@ def clients_list(request):
 
 @login_required
 def contacts_list(request):
-    contacts = Contact.objects.select_related('company', 'owner').order_by('name')
+    contacts = Contact.objects.prefetch_related('companies').select_related('owner').order_by('name')
     if not request.user.is_superuser:
         contacts = contacts.filter(owner=request.user)
     return render(request, 'deals/contacts_list.html', {'contacts': contacts})

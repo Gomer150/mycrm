@@ -11,7 +11,21 @@ class CompanyAdmin(admin.ModelAdmin):
 
 @admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = ("name", "company", "position", "phone", "email")
+    list_display = ("name", "company_list", "position", "phone", "email")
+    search_fields = ("name", "position", "phone", "email")
+    list_filter = ("companies",)
+    filter_horizontal = ("companies",)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.prefetch_related("companies")
+
+    def company_list(self, obj):
+        names = [company.name for company in obj.companies.all()[:5]]
+        display = ", ".join(names)
+        return display or "—"
+
+    company_list.short_description = "Компании"
 
 class DealCompanyInline(admin.TabularInline):
     model = DealCompany

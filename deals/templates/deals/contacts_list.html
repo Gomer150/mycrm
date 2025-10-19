@@ -7,7 +7,7 @@
     <thead>
       <tr>
         <th>Имя</th>
-        <th>Компания</th>
+        <th>Компании</th>
         <th>Должность</th>
         <th>Телефон</th>
         <th>Email</th>
@@ -18,7 +18,17 @@
       {% for contact in contacts %}
       <tr>
         <td>{{ contact.name }}</td>
-        <td>{{ contact.company.name }}</td>
+        <td>
+          {% if contact.companies.all %}
+            {% with companies=contact.companies.all %}
+              {% if companies %}
+                {% for company in companies %}
+                  {{ company.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              {% else %}—{% endif %}
+            {% endwith %}
+          {% else %}—{% endif %}
+        </td>
         <td>{{ contact.position|default:"—" }}</td>
         <td>{{ contact.phone|default:"—" }}</td>
         <td>{{ contact.email|default:"—" }}</td>

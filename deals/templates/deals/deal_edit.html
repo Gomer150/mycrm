@@ -609,6 +609,16 @@
         <textarea class="form-control contact-messengers" rows="2">{{ contact.messengers|default_if_none:'' }}</textarea>
       </div>
     </div>
+    <div class="row g-2 mt-2">
+      <div class="col-12">
+        <label class="form-label small mb-1">Компании</label>
+        <select class="form-select contact-companies" multiple size="6">
+          {% for company in companies %}
+          <option value="{{ company.id }}" {% if company in contact.companies.all %}selected{% endif %}>{{ company.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
     <div class="d-flex justify-content-end gap-2 mt-3">
       <button type="button" class="btn btn-outline-danger btn-sm contact-delete" data-contact-id="{{ contact.id }}">Удалить</button>
       <button type="button" class="btn btn-sm btn-primary save-contact-btn" data-contact-id="{{ contact.id }}">Сохранить</button>
@@ -649,6 +659,14 @@
           <div class="mb-3">
             <label for="new-contact-messengers" class="form-label">Мессенджеры</label>
             <textarea class="form-control" id="new-contact-messengers" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-companies" class="form-label">Компании</label>
+            <select id="new-contact-companies" class="form-select" multiple size="6">
+              {% for company in companies %}
+              <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>{{ company.name }}</option>
+              {% endfor %}
+            </select>
           </div>
         </form>
       </div>
@@ -880,6 +898,48 @@ let highlightedCompanyIndex = -1;
 let isClientDropdownOpen = false;
 let suppressClientSearchInputEvent = false;
 let lastFilterValue = "";
+
+function populateCompanySelect(selectElement, selectedIds = null) {
+  if (!selectElement) return;
+  const currentSelection = selectedIds === null
+    ? new Set(Array.from(selectElement.options || []).filter((option) => option.selected).map((option) => String(option.value)))
+    : new Set((selectedIds || []).map((value) => String(value)));
+  selectElement.innerHTML = "";
+  const size = Math.min(Math.max(companiesList.length || 4, 4), 12);
+  selectElement.size = size;
+  companiesList.forEach((company) => {
+    const option = document.createElement("option");
+    option.value = String(company.id);
+    option.textContent = company.name || `Компания #${company.id}`;
+    if (currentSelection.has(option.value)) {
+      option.selected = true;
+    }
+    selectElement.appendChild(option);
+  });
+}
+
+function getSelectedCompanyIds(selectElement) {
+  if (!selectElement) return [];
+  return Array.from(selectElement.options || [])
+    .filter((option) => option.selected && option.value)
+    .map((option) => Number(option.value))
+    .filter((value, index, array) => !Number.isNaN(value) && array.indexOf(value) === index);
+}
+
+function refreshAllContactCompanySelects() {
+  document.querySelectorAll(".contact-item .contact-companies").forEach((selectElement) => {
+    const parentItem = selectElement.closest(".contact-item");
+    const contactId = parentItem ? parentItem.dataset.contactId : null;
+    const existing = cachedContacts.find((item) => String(item.id) === String(contactId));
+    const selectedIds = existing ? existing.company_ids : getSelectedCompanyIds(selectElement);
+    populateCompanySelect(selectElement, selectedIds || []);
+  });
+  if (newContactFields.companies) {
+    const selectedIds = getSelectedCompanyIds(newContactFields.companies);
+    const fallback = initialClientId ? [Number(initialClientId)] : [];
+    populateCompanySelect(newContactFields.companies, selectedIds.length ? selectedIds : fallback);
+  }
+}
 
 function upsertCompanyRecord(company) {
   if (!company || company.id === undefined) {
@@ -1429,6 +1489,7 @@ function syncCompanyOption(company) {
     setClientSearchValue(company.name || "");
     handleClientChange();
   }
+  refreshAllContactCompanySelects();
 }
 
 function handleClientChange() {
@@ -1630,6 +1691,7 @@ const newContactFields = {
   phone: document.getElementById("new-contact-phone"),
   email: document.getElementById("new-contact-email"),
   messengers: document.getElementById("new-contact-messengers"),
+  companies: document.getElementById("new-contact-companies"),
 };
 
 let cachedContacts = [];
@@ -1645,6 +1707,8 @@ if (contactsDataElement) {
 }
 
 let contactsEnabled = Boolean(initialClientId);
+
+refreshAllContactCompanySelects();
 
 function showContactsMessage(message, type = "danger") {
   if (!contactsAlert) return;
@@ -1680,7 +1744,7 @@ function applyContactsState() {
     addContactButton.disabled = !contactsEnabled;
   }
   if (!contactsList) return;
-  contactsList.querySelectorAll("input, textarea, .save-contact-btn, .contact-delete").forEach((element) => {
+  contactsList.querySelectorAll("input, textarea, select, .save-contact-btn, .contact-delete").forEach((element) => {
     element.disabled = !contactsEnabled;
   });
 }
@@ -1710,6 +1774,7 @@ function getContactPayload(contactItem) {
   if (phoneInput) payload.phone = phoneInput.value.trim();
   if (emailInput) payload.email = emailInput.value.trim();
   if (messengersInput) payload.messengers = messengersInput.value.trim();
+  payload.company_ids = getSelectedCompanyIds(contactItem.querySelector(".contact-companies"));
   return payload;
 }
 
@@ -1726,6 +1791,10 @@ function updateContactItem(contactItem, contact) {
   if (phoneInput) phoneInput.value = contact.phone || "";
   if (emailInput) emailInput.value = contact.email || "";
   if (messengersInput) messengersInput.value = contact.messengers || "";
+  const companiesSelect = contactItem.querySelector(".contact-companies");
+  if (companiesSelect) {
+    populateCompanySelect(companiesSelect, contact.company_ids || []);
+  }
   const saveButton = contactItem.querySelector(".save-contact-btn");
   const deleteButton = contactItem.querySelector(".contact-delete");
   if (saveButton) saveButton.dataset.contactId = contact.id;
@@ -1811,6 +1880,23 @@ function renderContactItem(contact) {
   secondRow.appendChild(emailCol);
   secondRow.appendChild(messengersCol);
   li.appendChild(secondRow);
+
+  const companiesRow = document.createElement("div");
+  companiesRow.className = "row g-2 mt-2";
+  const companiesCol = document.createElement("div");
+  companiesCol.className = "col-12";
+  const companiesLabel = document.createElement("label");
+  companiesLabel.className = "form-label small mb-1";
+  companiesLabel.textContent = "Компании";
+  const companiesSelect = document.createElement("select");
+  companiesSelect.className = "form-select contact-companies";
+  companiesSelect.multiple = true;
+  companiesSelect.setAttribute("aria-label", "Компании контакта");
+  populateCompanySelect(companiesSelect, contact.company_ids || []);
+  companiesCol.appendChild(companiesLabel);
+  companiesCol.appendChild(companiesSelect);
+  companiesRow.appendChild(companiesCol);
+  li.appendChild(companiesRow);
 
   const actionsWrapper = document.createElement("div");
   actionsWrapper.className = "d-flex justify-content-end gap-2 mt-3";
@@ -1958,9 +2044,15 @@ function deleteContact(contactItem) {
 }
 
 function resetNewContactForm() {
-  Object.values(newContactFields).forEach((input) => {
-    if (input) {
-      input.value = "";
+  Object.entries(newContactFields).forEach(([key, element]) => {
+    if (!element) {
+      return;
+    }
+    if (element.tagName === "SELECT" && element.multiple) {
+      const defaultSelection = initialClientId ? [Number(initialClientId)] : [];
+      populateCompanySelect(element, defaultSelection);
+    } else {
+      element.value = "";
     }
   });
   if (addContactErrors) {
@@ -1987,6 +2079,7 @@ function renderContactsList(contacts) {
     attachContactEvents(item);
   });
   applyContactsState();
+  refreshAllContactCompanySelects();
 }
 
 function refreshContactsFromServer(companyId) {
@@ -2039,6 +2132,23 @@ if (createContactButton) {
       if (addContactErrors) {
         addContactErrors.textContent = "Укажите имя контакта.";
         addContactErrors.classList.remove("d-none");
+      }
+      return;
+    }
+    const selectedCompanyIds = getSelectedCompanyIds(newContactFields.companies);
+    if (!selectedCompanyIds.length && initialClientId) {
+      const initialCompany = Number(initialClientId);
+      if (!Number.isNaN(initialCompany)) {
+        selectedCompanyIds.push(initialCompany);
+      }
+    }
+    payload.company_ids = selectedCompanyIds;
+    if (!payload.company_ids.length) {
+      if (addContactErrors) {
+        addContactErrors.textContent = "Выберите хотя бы одну компанию для контакта.";
+        addContactErrors.classList.remove("d-none");
+      } else {
+        showContactsMessage("Выберите хотя бы одну компанию для контакта.");
       }
       return;
     }

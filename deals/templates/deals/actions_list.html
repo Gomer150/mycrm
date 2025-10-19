@@ -4,11 +4,27 @@
 <h1 class="mb-4">Действия</h1>
 <div class="row g-3 align-items-end mb-4">
   <div class="col-sm-4 col-md-3">
-    <label for="action-date" class="form-label">Дата</label>
-    <input type="date" class="form-control" id="action-date" value="{{ selected_date|date:'Y-m-d' }}">
+    <label for="actions-start-date" class="form-label">Дата начала</label>
+    <input type="date" class="form-control" id="actions-start-date" value="{{ start_date|date:'Y-m-d' }}">
+  </div>
+  <div class="col-sm-4 col-md-3">
+    <label for="actions-end-date" class="form-label">Дата окончания</label>
+    <input type="date" class="form-control" id="actions-end-date" value="{{ end_date|date:'Y-m-d' }}">
+  </div>
+  <div class="col-sm-4 col-md-3">
+    <label for="actions-status" class="form-label">Статус</label>
+    <select class="form-select" id="actions-status">
+      <option value="all" {% if selected_status == 'all' %}selected{% endif %}>Все статусы</option>
+      {% for value, label in status_options %}
+      <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="button" class="btn btn-primary" id="apply-actions-range">Показать</button>
   </div>
   <div class="col-auto ms-auto">
-    <a href="{% url 'actions_list' %}?view=calendar&year={{ selected_date|date:'Y' }}&month={{ selected_date|date:'n' }}" class="btn btn-outline-secondary">Календарь</a>
+    <a href="{% url 'actions_list' %}?view=calendar&year={{ selected_date|date:'Y' }}&month={{ selected_date|date:'n' }}{% if selected_status != 'all' %}&status={{ selected_status }}{% endif %}" class="btn btn-outline-secondary">Календарь</a>
   </div>
 </div>
 
@@ -41,34 +57,65 @@
 </table>
 {% else %}
 <div class="alert alert-info" role="alert">
-  На выбранную дату действий нет.
+  На выбранный период действий нет.
 </div>
 {% endif %}
 {% endblock %}
 {% block extra_scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const dateInput = document.getElementById('action-date');
-    if (!dateInput) {
+    const startInput = document.getElementById('actions-start-date');
+    const endInput = document.getElementById('actions-end-date');
+    const applyButton = document.getElementById('apply-actions-range');
+    const statusSelect = document.getElementById('actions-status');
+    if (!startInput || !endInput || !applyButton) {
       return;
     }
-    const goToDate = () => {
-      const value = dateInput.value;
-      if (!value) {
+    const goToRange = () => {
+      let startValue = startInput.value;
+      let endValue = endInput.value;
+      if (!startValue && !endValue) {
         return;
+      }
+      if (!startValue) {
+        startValue = endValue;
+      }
+      if (!endValue) {
+        endValue = startValue;
+      }
+      if (startValue > endValue) {
+        const tmp = startValue;
+        startValue = endValue;
+        endValue = tmp;
       }
       const url = new URL(window.location.href);
       url.searchParams.set('view', 'list');
-      url.searchParams.set('date', value);
+      url.searchParams.set('start_date', startValue);
+      url.searchParams.set('end_date', endValue);
+      url.searchParams.delete('date');
+      if (statusSelect) {
+        const statusValue = statusSelect.value || 'all';
+        if (statusValue && statusValue !== 'all') {
+          url.searchParams.set('status', statusValue);
+        } else {
+          url.searchParams.delete('status');
+        }
+      }
       window.location.href = url.toString();
     };
-    dateInput.addEventListener('change', goToDate);
-    dateInput.addEventListener('keydown', (event) => {
+    applyButton.addEventListener('click', goToRange);
+    const handleKeydown = (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
-        goToDate();
+        goToRange();
       }
-    });
+    };
+    startInput.addEventListener('keydown', handleKeydown);
+    endInput.addEventListener('keydown', handleKeydown);
+    if (statusSelect) {
+      statusSelect.addEventListener('change', goToRange);
+      statusSelect.addEventListener('keydown', handleKeydown);
+    }
   });
 </script>
 {% endblock %}

@@ -34,7 +34,6 @@ class Company(models.Model):
         return self.name
 
 class Contact(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="contacts")
     name = models.CharField(max_length=255)
     position = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=64, blank=True)
@@ -42,16 +41,28 @@ class Contact(models.Model):
     messengers = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    companies = models.ManyToManyField(Company, related_name="contacts", through="ContactCompany", blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.name:  
-            # Считаем количество сделок
+        if not self.name:
             count = Deal.objects.filter(owner=self.owner).count() + 1
             self.name = f"Сделка {count}"
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.company.name})"
+        first_company = self.companies.first()
+        if first_company:
+            return f"{self.name} ({first_company.name})"
+        return self.name
+
+
+class ContactCompany(models.Model):
+    contact = models.ForeignKey("Contact", on_delete=models.CASCADE, related_name="company_links")
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="contact_links")
+
+    class Meta:
+        unique_together = ("contact", "company")
+
 
 class Deal(models.Model):
     title = models.CharField(max_length=255)
