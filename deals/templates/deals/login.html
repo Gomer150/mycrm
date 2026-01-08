@@ -1,14 +1,16 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Вход в CRM</title>
-</head>
-<body>
-<h2>Вход в CRM</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Войти</button>
-</form>
-</body>
-</html>
+{% extends "deals/base.html" %}
+
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1 class="auth-title">Вход в CRM</h1>
+    <form method="post" class="vstack gap-3">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary">Войти</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

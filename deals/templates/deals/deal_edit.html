@@ -6,23 +6,13 @@
 
 <style>
   :root {
-    --deal-section-bg: #f7f9fc;
-    --deal-section-border: rgba(13, 110, 253, 0.12);
-    --deal-section-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
-    --deal-section-heading-border: rgba(15, 23, 42, 0.06);
-    --deal-section-item-bg: #ffffff;
-    --deal-section-item-border: rgba(15, 23, 42, 0.08);
-    --deal-section-item-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
-  }
-
-  [data-bs-theme="dark"] {
-    --deal-section-bg: rgba(13, 110, 253, 0.12);
-    --deal-section-border: rgba(13, 110, 253, 0.35);
-    --deal-section-shadow: 0 22px 60px rgba(6, 11, 20, 0.6);
-    --deal-section-heading-border: rgba(148, 163, 184, 0.18);
-    --deal-section-item-bg: rgba(21, 30, 48, 0.92);
-    --deal-section-item-border: rgba(96, 165, 250, 0.25);
-    --deal-section-item-shadow: 0 18px 45px rgba(3, 8, 18, 0.55);
+    --deal-section-bg: var(--surface-2);
+    --deal-section-border: var(--border);
+    --deal-section-shadow: var(--shadow-sm);
+    --deal-section-heading-border: var(--border);
+    --deal-section-item-bg: var(--surface);
+    --deal-section-item-border: var(--border);
+    --deal-section-item-shadow: var(--shadow-xs);
   }
 
   .deal-section {
@@ -87,14 +77,9 @@
   }
 
   .action-view-toggle .btn-check:checked + .btn {
-    background-color: rgba(13, 110, 253, 0.16);
+    background-color: rgba(var(--bs-primary-rgb), 0.16);
     color: var(--bs-primary);
-    border-color: rgba(13, 110, 253, 0.5);
-  }
-
-  [data-bs-theme="dark"] .action-view-toggle .btn-check:checked + .btn {
-    background-color: rgba(13, 110, 253, 0.24);
-    color: var(--bs-body-color);
+    border-color: rgba(var(--bs-primary-rgb), 0.5);
   }
 
   .deal-section .section-subtitle {
@@ -127,8 +112,8 @@
 
   .deal-section .list-group-item:hover,
   .deal-section .list-group-item:focus-within {
-    border-color: rgba(13, 110, 253, 0.55);
-    box-shadow: 0 16px 38px rgba(13, 110, 253, 0.18);
+    border-color: rgba(var(--bs-primary-rgb), 0.45);
+    box-shadow: 0 16px 38px rgba(var(--bs-primary-rgb), 0.16);
     transform: translateY(-2px);
   }
 
@@ -137,85 +122,44 @@
   }
 
   .deal-section-client {
-    background: #eef5ff;
-    border-color: rgba(63, 131, 248, 0.22);
+    background: rgba(var(--tone-client), 0.08);
+    border-color: rgba(var(--tone-client), 0.25);
   }
 
   .deal-section-client .list-group-item,
   .deal-section-client #client-editor-card {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(63, 131, 248, 0.24);
-  }
-
-  [data-bs-theme="dark"] .deal-section-client {
-    background: rgba(63, 131, 248, 0.18);
-    border-color: rgba(99, 179, 255, 0.45);
-  }
-
-  [data-bs-theme="dark"] .deal-section-client .list-group-item,
-  [data-bs-theme="dark"] .deal-section-client #client-editor-card {
-    background: rgba(18, 27, 46, 0.85);
-    border-color: rgba(99, 179, 255, 0.35);
+    background: var(--surface);
+    border-color: rgba(var(--tone-client), 0.2);
   }
 
   .deal-section-contacts {
-    background: #f4efff;
-    border-color: rgba(138, 109, 248, 0.22);
+    background: rgba(var(--tone-contacts), 0.08);
+    border-color: rgba(var(--tone-contacts), 0.25);
   }
 
   .deal-section-contacts .list-group-item {
-    background: rgba(255, 255, 255, 0.94);
-    border-color: rgba(138, 109, 248, 0.24);
-  }
-
-  [data-bs-theme="dark"] .deal-section-contacts {
-    background: rgba(138, 109, 248, 0.2);
-    border-color: rgba(168, 145, 255, 0.5);
-  }
-
-  [data-bs-theme="dark"] .deal-section-contacts .list-group-item {
-    background: rgba(23, 19, 39, 0.88);
-    border-color: rgba(168, 145, 255, 0.35);
+    background: var(--surface);
+    border-color: rgba(var(--tone-contacts), 0.2);
   }
 
   .deal-section-actions {
-    background: #f1fff7;
-    border-color: rgba(25, 135, 84, 0.22);
+    background: rgba(var(--tone-actions), 0.08);
+    border-color: rgba(var(--tone-actions), 0.25);
   }
 
   .deal-section-actions .list-group-item {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(25, 135, 84, 0.24);
-  }
-
-  [data-bs-theme="dark"] .deal-section-actions {
-    background: rgba(25, 135, 84, 0.2);
-    border-color: rgba(102, 212, 170, 0.5);
-  }
-
-  [data-bs-theme="dark"] .deal-section-actions .list-group-item {
-    background: rgba(16, 32, 27, 0.88);
-    border-color: rgba(102, 212, 170, 0.35);
+    background: var(--surface);
+    border-color: rgba(var(--tone-actions), 0.2);
   }
 
   .deal-section-documents {
-    background: #fff6ed;
-    border-color: rgba(255, 159, 67, 0.25);
+    background: rgba(var(--tone-documents), 0.08);
+    border-color: rgba(var(--tone-documents), 0.25);
   }
 
   .deal-section-documents .list-group-item {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(255, 159, 67, 0.24);
-  }
-
-  [data-bs-theme="dark"] .deal-section-documents {
-    background: rgba(255, 159, 67, 0.22);
-    border-color: rgba(255, 189, 116, 0.5);
-  }
-
-  [data-bs-theme="dark"] .deal-section-documents .list-group-item {
-    background: rgba(36, 26, 15, 0.88);
-    border-color: rgba(255, 189, 116, 0.35);
+    background: var(--surface);
+    border-color: rgba(var(--tone-documents), 0.2);
   }
 
   .deal-documents-list {
@@ -257,43 +201,23 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    background: rgba(13, 110, 253, 0.16);
+    background: rgba(var(--bs-primary-rgb), 0.16);
     color: var(--bs-primary);
   }
 
   .action-status-pill[data-status="completed"] {
-    background: rgba(25, 135, 84, 0.18);
-    color: #198754;
+    background: rgba(var(--bs-success-rgb), 0.18);
+    color: var(--success);
   }
 
   .action-status-pill[data-status="overdue"] {
-    background: rgba(220, 53, 69, 0.18);
-    color: #dc3545;
+    background: rgba(var(--bs-danger-rgb), 0.18);
+    color: var(--danger);
   }
 
   .action-status-pill[data-status="cancelled"] {
-    background: rgba(108, 117, 125, 0.18);
-    color: #6c757d;
-  }
-
-  [data-bs-theme="dark"] .action-status-pill {
-    background: rgba(118, 169, 250, 0.22);
-    color: #bbd3ff;
-  }
-
-  [data-bs-theme="dark"] .action-status-pill[data-status="completed"] {
-    background: rgba(25, 135, 84, 0.28);
-    color: #69f0ae;
-  }
-
-  [data-bs-theme="dark"] .action-status-pill[data-status="overdue"] {
-    background: rgba(220, 53, 69, 0.32);
-    color: #ff9aa2;
-  }
-
-  [data-bs-theme="dark"] .action-status-pill[data-status="cancelled"] {
-    background: rgba(148, 163, 184, 0.32);
-    color: #d1d5db;
+    background: rgba(var(--bs-secondary-rgb), 0.18);
+    color: var(--text-muted);
   }
 
   .action-compact-main {
@@ -322,22 +246,14 @@
 
   #client-selector {
     border-radius: 0.75rem;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
-  }
-
-  [data-bs-theme="dark"] #client-selector {
-    box-shadow: 0 18px 40px rgba(6, 11, 20, 0.5);
+    box-shadow: var(--shadow-sm);
   }
 
   #client-dropdown {
     border-radius: 0.75rem;
     overflow: hidden;
     border: 1px solid var(--deal-section-item-border);
-    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.15);
-  }
-
-  [data-bs-theme="dark"] #client-dropdown {
-    box-shadow: 0 24px 50px rgba(6, 11, 20, 0.6);
+    box-shadow: var(--shadow-md);
   }
 
   #client-editor-card {
@@ -397,20 +313,12 @@
     padding: 0.75rem 2.5rem;
     border-radius: 0.8rem;
     font-weight: 600;
-    box-shadow: 0 16px 36px rgba(13, 110, 253, 0.18);
+    box-shadow: 0 16px 36px rgba(var(--bs-primary-rgb), 0.18);
   }
 
   .deal-footer-actions .btn-outline-primary {
     box-shadow: none;
     border-width: 1.5px;
-  }
-
-  [data-bs-theme="dark"] .deal-footer-actions .btn {
-    box-shadow: 0 18px 42px rgba(13, 110, 253, 0.28);
-  }
-
-  [data-bs-theme="dark"] .deal-footer-actions .btn-outline-primary {
-    box-shadow: none;
   }
 
   #deal-actions-alert,
@@ -420,7 +328,7 @@
   }
 
   .deal-section .delete-icon {
-    filter: drop-shadow(0 4px 8px rgba(220, 53, 69, 0.35));
+    filter: drop-shadow(0 4px 8px rgba(var(--bs-danger-rgb), 0.35));
   }
 </style>
 
@@ -532,47 +440,6 @@
   </div>
 
 </form>
-
-<div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Добавить клиента</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label for="new-client-name" class="form-label">Название клиента</label>
-          <input type="text" class="form-control" id="new-client-name">
-        </div>
-        <div class="mb-3">
-          <label for="new-client-phone" class="form-label">Телефон</label>
-          <input type="text" class="form-control" id="new-client-phone">
-        </div>
-        <div class="mb-3">
-          <label for="new-client-email" class="form-label">Email</label>
-          <input type="email" class="form-control" id="new-client-email">
-        </div>
-        <div class="mb-3">
-          <label for="new-client-inn" class="form-label">ИНН</label>
-          <input type="text" class="form-control" id="new-client-inn">
-        </div>
-        <div class="mb-3">
-          <label for="new-client-website" class="form-label">Сайт</label>
-          <input type="url" class="form-control" id="new-client-website" placeholder="https://example.com">
-        </div>
-        <div class="mb-3">
-          <label for="new-client-address" class="form-label">Адрес</label>
-          <textarea class="form-control" id="new-client-address"></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary" id="save-client-btn">Сохранить</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div class="deal-section deal-section-contacts">
   <div class="section-heading">
     <div>
@@ -628,54 +495,6 @@
   <li class="list-group-item text-muted" id="no-contacts-placeholder">Контактов пока нет</li>
   {% endfor %}
   </ul>
-</div>
-
-<div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Добавить контакт</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <form id="add-contact-form">
-          <div class="alert alert-danger d-none" id="contact-form-errors"></div>
-          <div class="mb-3">
-            <label for="new-contact-name" class="form-label">Имя</label>
-            <input type="text" class="form-control" id="new-contact-name" required>
-          </div>
-          <div class="mb-3">
-            <label for="new-contact-position" class="form-label">Должность</label>
-            <input type="text" class="form-control" id="new-contact-position">
-          </div>
-          <div class="mb-3">
-            <label for="new-contact-phone" class="form-label">Телефон</label>
-            <input type="text" class="form-control" id="new-contact-phone">
-          </div>
-          <div class="mb-3">
-            <label for="new-contact-email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="new-contact-email">
-          </div>
-          <div class="mb-3">
-            <label for="new-contact-messengers" class="form-label">Мессенджеры</label>
-            <textarea class="form-control" id="new-contact-messengers" rows="2"></textarea>
-          </div>
-          <div class="mb-3">
-            <label for="new-contact-companies" class="form-label">Компании</label>
-            <select id="new-contact-companies" class="form-select" multiple size="6">
-              {% for company in companies %}
-              <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>{{ company.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary" id="create-contact-btn">Добавить</button>
-      </div>
-    </div>
-  </div>
 </div>
 <div class="deal-section deal-section-actions">
   <div class="section-heading">
@@ -787,54 +606,6 @@
   <li class="list-group-item text-muted" id="no-actions-placeholder">Действий пока нет</li>
   {% endfor %}
   </ul>
-</div>
-
-<div class="modal fade" id="addActionModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Добавить действие</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <form id="add-action-form">
-          <div class="alert alert-danger d-none" id="action-form-errors"></div>
-          <div class="mb-3">
-            {{ action_form.description.label_tag }}
-            {{ action_form.description }}
-          </div>
-          <div class="mb-3">
-            {{ action_form.status.label_tag }}
-            {{ action_form.status }}
-          </div>
-          <div class="mb-3">
-            {{ action_form.remind_at.label_tag }}
-            {{ action_form.remind_at }}
-          </div>
-          <div class="mb-3">
-            {{ action_form.notify_before_value.label_tag }}
-            <div class="input-group action-notify-group">
-              {{ action_form.notify_before_value }}
-              {{ action_form.notify_before_unit }}
-            </div>
-            <div class="form-text">0 — без дополнительного оповещения</div>
-          </div>
-          <div class="mb-3">
-            {{ action_form.recurrence.label_tag }}
-            {{ action_form.recurrence }}
-          </div>
-          <div class="mb-3 d-none" id="new-action-custom-interval-wrapper">
-            {{ action_form.custom_interval_days.label_tag }}
-            {{ action_form.custom_interval_days }}
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary" id="create-action-btn">Добавить</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="deal-section deal-section-documents">
@@ -3137,4 +2908,143 @@ checkActionsForOverdue();
 setInterval(checkActionsForOverdue, 60000);
 </script>
 
+{% endblock %}
+
+{% block modals %}
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить клиента</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="new-client-name" class="form-label">Название клиента</label>
+          <input type="text" class="form-control" id="new-client-name">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-phone" class="form-label">Телефон</label>
+          <input type="text" class="form-control" id="new-client-phone">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="new-client-email">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-inn" class="form-label">ИНН</label>
+          <input type="text" class="form-control" id="new-client-inn">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-website" class="form-label">Сайт</label>
+          <input type="url" class="form-control" id="new-client-website" placeholder="https://example.com">
+        </div>
+        <div class="mb-3">
+          <label for="new-client-address" class="form-label">Адрес</label>
+          <textarea class="form-control" id="new-client-address"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="save-client-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить контакт</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-contact-form">
+          <div class="alert alert-danger d-none" id="contact-form-errors"></div>
+          <div class="mb-3">
+            <label for="new-contact-name" class="form-label">Имя</label>
+            <input type="text" class="form-control" id="new-contact-name" required>
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-position" class="form-label">Должность</label>
+            <input type="text" class="form-control" id="new-contact-position">
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-phone" class="form-label">Телефон</label>
+            <input type="text" class="form-control" id="new-contact-phone">
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="new-contact-email">
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-messengers" class="form-label">Мессенджеры</label>
+            <textarea class="form-control" id="new-contact-messengers" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="new-contact-companies" class="form-label">Компании</label>
+            <select id="new-contact-companies" class="form-select" multiple size="6">
+              {% for company in companies %}
+              <option value="{{ company.id }}" {% if deal.client_id == company.id %}selected{% endif %}>{{ company.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="create-contact-btn">Добавить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addActionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить действие</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-action-form">
+          <div class="alert alert-danger d-none" id="action-form-errors"></div>
+          <div class="mb-3">
+            {{ action_form.description.label_tag }}
+            {{ action_form.description }}
+          </div>
+          <div class="mb-3">
+            {{ action_form.status.label_tag }}
+            {{ action_form.status }}
+          </div>
+          <div class="mb-3">
+            {{ action_form.remind_at.label_tag }}
+            {{ action_form.remind_at }}
+          </div>
+          <div class="mb-3">
+            {{ action_form.notify_before_value.label_tag }}
+            <div class="input-group action-notify-group">
+              {{ action_form.notify_before_value }}
+              {{ action_form.notify_before_unit }}
+            </div>
+            <div class="form-text">0 — без дополнительного оповещения</div>
+          </div>
+          <div class="mb-3">
+            {{ action_form.recurrence.label_tag }}
+            {{ action_form.recurrence }}
+          </div>
+          <div class="mb-3 d-none" id="new-action-custom-interval-wrapper">
+            {{ action_form.custom_interval_days.label_tag }}
+            {{ action_form.custom_interval_days }}
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="create-action-btn">Добавить</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
